@@ -52,7 +52,7 @@
   .emblem{
     flex-shrink:0;
     width:48px; height:48px; border-radius:50%;
-    background: linear-gradient(160deg, var(--ball) 0%, var(--ball-dark) 100%);
+    background: linear-gradient(160deg, #FFFFFF 0%, #E7E6DE 100%);
     color: var(--court-green-dark);
     display:flex; align-items:center; justify-content:center;
     font-family:'Shippori Mincho', serif;
@@ -114,8 +114,59 @@
     border-radius:var(--radius) var(--radius) 0 0;
     cursor:pointer;
     letter-spacing:0.06em;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
   }
   .tabs button.active{ background:var(--surface); color:var(--court-green-dark); }
+  .tab-icon{ font-size:16px; line-height:1; }
+  .tab-label{ display:inline-flex; align-items:center; gap:4px; }
+
+  /* スマホ・タブレットではLINEアプリのように画面下部にタブを固定 */
+  @media (max-width: 820px){
+    header.top{
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      padding: 8px 14px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(244,243,236,0.25);
+    }
+    .brand-row{ gap:8px; }
+    .emblem{ width:30px; height:30px; font-size:8px; }
+    .brand .eyebrow{ font-size:9px; letter-spacing:0.08em; margin-bottom:1px; }
+    .brand h1{ font-size:15px; }
+    .session-box{ padding:5px 10px; font-size:11px; gap:6px; }
+    .session-box .tag{ font-size:9px; padding:1px 6px; }
+
+    .app{ padding-bottom:78px; }
+
+    .tabs{
+      position: fixed;
+      left:0; right:0; bottom:0;
+      z-index:70;
+      margin-bottom:0;
+      gap:0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-radius:0;
+      padding: 4px 2px calc(4px + env(safe-area-inset-bottom));
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.12);
+    }
+    .tabs button{
+      flex-direction: column;
+      gap:2px;
+      padding:6px 2px;
+      background:transparent;
+      color: var(--ink-soft);
+      border-radius:10px;
+      font-size:10px;
+      letter-spacing:0;
+    }
+    .tabs button.active{ background:transparent; color:var(--court-green); }
+    .tab-icon{ font-size:19px; }
+  }
 
   .panel{
     background:var(--surface);
@@ -202,6 +253,33 @@
   .hint{ font-size:12px; color:var(--ink-soft); margin-top:-4px; margin-bottom:10px; }
 
   /* Login overlay */
+  .login-splash-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: var(--court-green);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: opacity 0.6s ease;
+    opacity: 1;
+  }
+  .login-splash-overlay.fade-out{ opacity:0; pointer-events:none; }
+  .login-splash-card{ text-align:center; color:var(--line-white); padding:24px; max-width:320px; }
+  .login-splash-label{
+    font-family:'Shippori Mincho', serif;
+    font-size:13px;
+    letter-spacing:0.25em;
+    color:var(--ball);
+  }
+  .login-splash-value{
+    font-family:'Shippori Mincho', serif;
+    font-size:21px;
+    font-weight:700;
+    margin-top:6px;
+    white-space:pre-wrap;
+  }
+
   .login-wrap{
     min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
   }
@@ -274,7 +352,7 @@
   .chat-bubble-time{ font-size:10px; color:var(--ink-soft); margin-top:3px; }
   .tab-badge{
     display:inline-block;
-    background:var(--refl);
+    background:#DC2626;
     color:#fff;
     font-size:11px;
     font-weight:700;
@@ -357,6 +435,9 @@ let lastSeenWriteAt = 0;  // 直近でlastSeenを保存した時刻（連続保�
 let threadLastSeen = {};  // shared: { studentName: timestamp } 先生がその生徒のトークを最後に見た時刻
 let threadLastSeenWriteAt = 0;
 let broadcastPage = 0; // お知らせ一覧の現在のページ（0始まり）
+let studentGoals = {};      // shared: { studentName: goalText } 生徒各自の今月の目標
+let nextTournament = { name:"", updatedAt:0 }; // shared: 次の大会名（先生が設定）
+let showLoginSplash = false; // ログイン直後の目標表示演出を出すかどうか
 let survey = { active:false, question:"", numChoices:3, createdAt:0 }; // shared: アンケート設定
 let surveyResponses = {}; // shared: { studentName: { rankings:[name,...], submittedAt } }
 let surveyCreating = false; // 先生がアンケート新規作成フォームを表示中か（ローカル状態）
@@ -412,7 +493,7 @@ async function safeSet(key, value, shared){
 }
 
 async function loadAll(){
-  const [s, a, r, ro, bc, pt, ls, sd, tls] = await Promise.all([
+  const [s, a, r, ro, bc, pt, ls, sd, tls, sg, nt] = await Promise.all([
     safeGetKeep("schedule", true, schedule),
     safeGetKeep("absences", true, absences),
     safeGetKeep("reflections", true, reflections),
@@ -422,6 +503,8 @@ async function loadAll(){
     safeGetKeep("lastSeen", true, lastSeen),
     safeGetKeep("surveyData", true, { survey, surveyResponses }),
     safeGetKeep("threadLastSeen", true, threadLastSeen),
+    safeGetKeep("studentGoals", true, studentGoals),
+    safeGetKeep("nextTournament", true, nextTournament),
   ]);
   schedule = s || {};
   absences = a || {};
@@ -433,6 +516,8 @@ async function loadAll(){
   survey = (sd && sd.survey) || { active:false, question:"", numChoices:3, createdAt:0 };
   surveyResponses = (sd && sd.surveyResponses) || {};
   threadLastSeen = tls || {};
+  studentGoals = sg || {};
+  nextTournament = nt || { name:"", updatedAt:0 };
 }
 async function saveSurveyData(){
   await safeSet("surveyData", { survey, surveyResponses }, true);
@@ -466,8 +551,35 @@ function render(){
     bindLoginEvents();
     return;
   }
-  root.innerHTML = renderApp();
+  root.innerHTML = (showLoginSplash ? renderLoginSplash() : "") + renderApp();
   bindAppEvents();
+}
+
+function renderLoginSplash(){
+  const goal = studentGoals[session.name] || "";
+  const tournamentName = (nextTournament && nextTournament.name) || "";
+  return `
+    <div id="loginSplash" class="login-splash-overlay">
+      <div class="login-splash-card">
+        <div class="login-splash-label">今月の目標</div>
+        <div class="login-splash-value">${goal? escapeHtml(goal) : "（まだ設定されていません）"}</div>
+        <div class="login-splash-label" style="margin-top:20px;">次の大会</div>
+        <div class="login-splash-value">${tournamentName? escapeHtml(tournamentName) : "（未定）"}</div>
+      </div>
+    </div>
+  `;
+}
+function triggerLoginSplash(){
+  showLoginSplash = true;
+  render();
+  setTimeout(()=>{
+    const el = document.getElementById('loginSplash');
+    if(el) el.classList.add('fade-out');
+  }, 2300);
+  setTimeout(()=>{
+    showLoginSplash = false;
+    render();
+  }, 3000);
 }
 
 /* ---------------- LOGIN ---------------- */
@@ -587,7 +699,7 @@ function bindLoginEvents(){
       session = { role:"student", name: loginSelectedStudent };
       loginErr="";
       studentFirstTimeMode = false;
-      render();
+      triggerLoginSplash();
     };
   }
   const submitBtn = $("#loginSubmit");
@@ -623,7 +735,11 @@ function bindLoginEvents(){
           loginErr = "パスコードが違います。";
         }
       }
-      render();
+      if(session && session.role==="student"){
+        triggerLoginSplash();
+      }else{
+        render();
+      }
     };
   }
 }
@@ -694,14 +810,14 @@ function renderApp(){
     </header>
 
     <div class="tabs">
-      <button data-tab="schedule" class="${activeTab==='schedule'?'active':''}">① スケジュール・欠席連絡</button>
-      <button data-tab="reflection" class="${activeTab==='reflection'?'active':''}">② 振り返り</button>
-      <button data-tab="notice" class="${activeTab==='notice'?'active':''}">③ お知らせ${renderNoticeBadge()}</button>
-      <button data-tab="messages" class="${activeTab==='messages'?'active':''}">④ ${isTeacher? '生徒との連絡':'先生との連絡'}${renderMessagesBadge()}</button>
-      ${isTeacher? `<button data-tab="settings" class="${activeTab==='settings'?'active':''}">設定（生徒管理）</button>`:''}
+      <button data-tab="schedule" class="${activeTab==='schedule'?'active':''}"><span class="tab-icon">📅</span><span class="tab-label">予定</span></button>
+      <button data-tab="reflection" class="${activeTab==='reflection'?'active':''}"><span class="tab-icon">📝</span><span class="tab-label">振り返り</span></button>
+      <button data-tab="notice" class="${activeTab==='notice'?'active':''}"><span class="tab-icon">🔔</span><span class="tab-label">連絡${renderNoticeBadge()}</span></button>
+      <button data-tab="messages" class="${activeTab==='messages'?'active':''}"><span class="tab-icon">💬</span><span class="tab-label">メッセージ${renderMessagesBadge()}</span></button>
+      <button data-tab="settings" class="${activeTab==='settings'?'active':''}"><span class="tab-icon">⚙️</span><span class="tab-label">設定</span></button>
     </div>
 
-    ${activeTab==='settings' ? renderSettingsPanel() : (activeTab==='notice' ? renderNoticePanel() : (activeTab==='messages' ? renderMessagesPanel() : renderMainPanel()))}
+    ${activeTab==='settings' ? (isTeacher ? renderSettingsPanel() : renderStudentSettingsPanel()) : (activeTab==='notice' ? renderNoticePanel() : (activeTab==='messages' ? renderMessagesPanel() : renderMainPanel()))}
   </div>`;
 }
 
@@ -1234,6 +1350,43 @@ function renderSettingsPanel(){
       <button class="btn ghost" id="changeTeacherPassBtn">変更する</button>
       <div class="status-msg" id="teacherPassMsg"></div>
     </div>
+    <div class="card">
+      <h3>次の大会</h3>
+      <div class="hint">ここで設定した大会名は、生徒のログイン直後の画面にも表示されます。</div>
+      <div class="field-row"><input id="nextTournamentInput" placeholder="大会名（例: 県総体）" value="${escapeHtml((nextTournament&&nextTournament.name)||'')}"></div>
+      <button class="btn ghost" id="saveTournamentBtn">保存する</button>
+      <div class="status-msg" id="tournamentMsg"></div>
+    </div>
+  </div>`;
+}
+
+function renderStudentSettingsPanel(){
+  const myGoal = studentGoals[session.name] || "";
+  return `
+  <div class="panel single">
+    <div class="card">
+      <h3>アカウント管理</h3>
+      <div class="hint" style="margin:0 0 10px;">ログイン名：<strong>${escapeHtml(session.name)}</strong></div>
+      <div class="hint" style="margin-bottom:4px;">パスコードを変更する</div>
+      <div class="field-row">
+        <input id="myNewPass1" type="password" placeholder="新しいパスコード（4文字以上）">
+        <input id="myNewPass2" type="password" placeholder="もう一度入力">
+      </div>
+      <button class="btn ghost" id="changeMyPassBtn">パスコードを変更する</button>
+      <div class="status-msg" id="myPassMsg"></div>
+    </div>
+    <div class="card">
+      <h3>今月の目標</h3>
+      <div class="hint">ログインした直後の画面に表示されます。</div>
+      <textarea id="myGoalInput" placeholder="今月の目標を書きましょう">${escapeHtml(myGoal)}</textarea>
+      <button class="btn" id="saveGoalBtn" style="margin-top:8px;">保存する</button>
+      <div class="status-msg" id="goalMsg"></div>
+    </div>
+    <div class="card">
+      <h3>次の大会</h3>
+      <div style="font-weight:700;">${(nextTournament && nextTournament.name) ? escapeHtml(nextTournament.name) : "まだ設定されていません"}</div>
+      <div class="hint" style="margin-top:4px;">こちらは先生が設定します。</div>
+    </div>
   </div>`;
 }
 
@@ -1262,7 +1415,7 @@ function bindAppEvents(){
     };
   });
 
-  if(activeTab==="settings"){ bindSettingsEvents(); return; }
+  if(activeTab==="settings"){ if(isTeacherNow()){ bindSettingsEvents(); } else { bindStudentSettingsEvents(); } return; }
   if(activeTab==="notice"){ bindNoticeEvents(); return; }
   if(activeTab==="messages"){ bindMessagesEvents(); return; }
 
@@ -1643,6 +1796,38 @@ function bindSettingsEvents(){
     roster.teacherPasscode = p;
     await safeSet("roster", roster, true);
     $("#teacherPassMsg").textContent = "変更しました。";
+  };
+  $("#saveTournamentBtn").onclick = async ()=>{
+    const name = $("#nextTournamentInput").value.trim();
+    await loadAll();
+    nextTournament = { name, updatedAt: Date.now() };
+    await safeSet("nextTournament", nextTournament, true);
+    $("#tournamentMsg").textContent = "保存しました。";
+  };
+}
+
+function bindStudentSettingsEvents(){
+  $("#changeMyPassBtn").onclick = async ()=>{
+    const p1 = $("#myNewPass1").value;
+    const p2 = $("#myNewPass2").value;
+    if(!p1 || p1.length<4){ $("#myPassMsg").textContent = "パスコードは4文字以上にしてください。"; return; }
+    if(p1!==p2){ $("#myPassMsg").textContent = "パスコードが一致しません。"; return; }
+    await loadAll(); // 他の生徒の変更を消さないよう最新状態を取得してから書き込む
+    const idx = roster.students.findIndex(s=>s.name===session.name);
+    if(idx===-1){ $("#myPassMsg").textContent = "アカウント情報が見つかりませんでした。"; return; }
+    const duplicate = roster.students.some((s,i)=> i!==idx && s.passcode === p1);
+    if(duplicate){ $("#myPassMsg").textContent = "そのパスコードは他の人が使っています。別の番号にしてください。"; return; }
+    roster.students[idx].passcode = p1;
+    await safeSet("roster", roster, true);
+    $("#myPassMsg").textContent = "パスコードを変更しました。";
+    $("#myNewPass1").value = ""; $("#myNewPass2").value = "";
+  };
+  $("#saveGoalBtn").onclick = async ()=>{
+    const goal = $("#myGoalInput").value.trim();
+    await loadAll(); // 他の生徒の目標を消さないよう最新状態を取得してから書き込む
+    studentGoals[session.name] = goal;
+    await safeSet("studentGoals", studentGoals, true);
+    $("#goalMsg").textContent = "保存しました。";
   };
 }
 
