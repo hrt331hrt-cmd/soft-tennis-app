@@ -499,6 +499,8 @@ function bindLoginEvents(){
       const p2 = $("#setupPass2").value;
       if(!p1 || p1.length<3){ loginErr="4文字以上のパスコードにしてください。"; render(); return; }
       if(p1!==p2){ loginErr="パスコードが一致しません。"; render(); return; }
+      await loadAll();
+      if(roster.teacherPasscode){ loginErr="すでに設定済みです。ログインし直してください。"; render(); return; }
       roster.teacherPasscode = p1;
       await safeSet("roster", roster, true);
       session = { role:"teacher", name:"先生" };
@@ -1207,6 +1209,7 @@ function bindAppEvents(){
         if(previewAsStudent){ $("#absentMsg").textContent = "デモモードのため、実際には送信されません。"; return; }
         const type = $("#absentType").value;
         const reason = $("#absentReason").value.trim();
+        await loadAll(); // 他の人の連絡を消さないよう最新状態を取得してから追加する
         if(!absences[selectedDate]) absences[selectedDate] = [];
         absences[selectedDate].push({name:session.name, type, reason, ts: Date.now(), date: selectedDate});
         await safeSet("absences", absences, true);
@@ -1234,6 +1237,7 @@ function bindAppEvents(){
           const attitudeNotes = $("#reflAttitudeNotes").value.trim();
           if(!playNotes && !attitudeNotes){ $("#reflMsg").textContent = "どちらか一つは入力してください。"; return; }
 
+          await loadAll(); // 他の生徒の振り返りを消さないよう最新状態を取得してから追加する
           if(!reflections[selectedDate]) reflections[selectedDate] = [];
           reflections[selectedDate].push({ name:session.name, playNotes, attitudeNotes, ts: Date.now() });
           await safeSet("reflections", reflections, true);
@@ -1257,6 +1261,7 @@ function bindAppEvents(){
             return;
           }
 
+          await loadAll(); // 他の生徒の振り返りを消さないよう最新状態を取得してから追加する
           if(!reflections[selectedDate]) reflections[selectedDate] = [];
           reflections[selectedDate].push({ name:session.name, kind:"match", partner, opponent1, opponent2, gameCount, notes, ts: Date.now() });
           await safeSet("reflections", reflections, true);
@@ -1427,6 +1432,7 @@ function bindNoticeEvents(){
         if(rankings.length===0){ $("#surveyMsg").textContent = "少なくとも1人は選んでください。"; return; }
         const uniqueCheck = new Set(rankings);
         if(uniqueCheck.size !== rankings.length){ $("#surveyMsg").textContent = "同じ人を重複して選ばないでください。"; return; }
+        await loadAll(); // 他の生徒の回答を消さないよう最新状態を取得してから追加する
         surveyResponses[session.name] = { rankings, submittedAt: Date.now() };
         await saveSurveyData();
         render();
@@ -1440,6 +1446,7 @@ function bindNoticeEvents(){
       sendBc.onclick = async ()=>{
         const text = $("#broadcastText").value.trim();
         if(!text){ $("#broadcastMsg").textContent = "内容を入力してください。"; return; }
+        await loadAll();
         broadcasts.push({text, ts: Date.now()});
         await safeSet("broadcasts", broadcasts, true);
         render();
@@ -1455,6 +1462,7 @@ function bindNoticeEvents(){
       if(!text) return;
       const threadName = isTeacher ? selectedThreadStudent : session.name;
       if(isTeacher && !threadName){ $("#threadMsg").textContent = "生徒を選んでください。"; return; }
+      await loadAll(); // 他のメッセージを消さないよう最新状態を取得してから追加する
       if(!privateThreads[threadName]) privateThreads[threadName] = [];
       privateThreads[threadName].push({ from: isTeacher? "teacher":"student", text, ts: Date.now() });
       await safeSet("privateThreads", privateThreads, true);
@@ -1499,6 +1507,7 @@ function bindSettingsEvents(){
   $("#addStuBtn").onclick = async ()=>{
     const name = $("#newStuName").value.trim();
     if(!name){ $("#stuMsg").textContent = "名前を入力してください。"; return; }
+    await loadAll(); // 他の変更を上書きしないよう最新状態を取得してから追加する
     if(roster.students.find(s=>s.name===name)){ $("#stuMsg").textContent = "同じ名前がすでに登録されています。"; return; }
     roster.students.push({name, passcode:null});
     await safeSet("roster", roster, true);
@@ -1507,6 +1516,7 @@ function bindSettingsEvents(){
   $("#changeTeacherPassBtn").onclick = async ()=>{
     const p = $("#newTeacherPass").value;
     if(p.length<4){ $("#teacherPassMsg").textContent = "4文字以上にしてください。"; return; }
+    await loadAll();
     roster.teacherPasscode = p;
     await safeSet("roster", roster, true);
     $("#teacherPassMsg").textContent = "変更しました。";
