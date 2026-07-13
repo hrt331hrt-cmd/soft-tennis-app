@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>観音寺総合高校 ソフトテニス部 部活ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Shippori+Mincho:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --court-green:#1F4A38;
+    --court-green-dark:#153629;
+    --line-white:#F4F3EC;
+    --surface:#FBFAF6;
+    --ink:#1B2620;
+    --ink-soft:#5B6960;
+    --ball:#D7E85E;
+    --ball-dark:#9CB233;
+    --alert:#C0533E;
+    --border:#DCE2D4;
+    --match:#F5D949;
+    --practice:#BEE6F0;
+    --off:#FFFFFF;
+    --refl:#E8752F;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    background:var(--court-green);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  .app{
+    max-width:1100px;
+    margin:0 auto;
+    padding:20px 16px 60px;
+  }
+  header.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:14px;
+    padding:18px 22px;
+    border-bottom:2px dashed rgba(244,243,236,0.35);
+    margin-bottom:22px;
+  }
+  .brand{ color:var(--line-white); }
+  .brand-row{ display:flex; align-items:center; gap:14px; }
+  .emblem{
+    flex-shrink:0;
+    width:48px; height:48px; border-radius:50%;
+    background: linear-gradient(160deg, var(--ball) 0%, var(--ball-dark) 100%);
+    color: var(--court-green-dark);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Shippori Mincho', serif;
+    font-weight:700; font-size:11px; letter-spacing:0.03em;
+    border: 2px solid rgba(244,243,236,0.7);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.15);
+  }
+  .brand .eyebrow{
+    font-family:'Shippori Mincho', serif;
+    font-size:12px;
+    letter-spacing:0.2em;
+    color:var(--ball);
+    margin-bottom:4px;
+  }
+  .brand h1{
+    font-family:'Shippori Mincho', serif;
+    font-weight:700;
+    font-size:26px;
+    margin:0;
+  }
+  .session-box{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:rgba(255,255,255,0.08);
+    padding:8px 14px;
+    border-radius:999px;
+    color:var(--line-white);
+    font-size:13px;
+  }
+  .session-box .tag{
+    background:var(--ball);
+    color:var(--court-green-dark);
+    font-weight:700;
+    font-size:11px;
+    padding:2px 9px;
+    border-radius:999px;
+  }
+  .session-box button{
+    border:none;
+    background:transparent;
+    color:rgba(244,243,236,0.75);
+    text-decoration:underline;
+    font-family:inherit;
+    font-size:12px;
+    cursor:pointer;
+  }
+
+  .tabs{ display:flex; gap:8px; margin-bottom:18px; }
+  .tabs button{
+    flex:1;
+    border:none;
+    padding:14px;
+    font-family:'Shippori Mincho', serif;
+    font-size:15px;
+    font-weight:700;
+    background:rgba(255,255,255,0.08);
+    color:var(--line-white);
+    border-radius:var(--radius) var(--radius) 0 0;
+    cursor:pointer;
+    letter-spacing:0.06em;
+  }
+  .tabs button.active{ background:var(--surface); color:var(--court-green-dark); }
+
+  .panel{
+    background:var(--surface);
+    border-radius:0 var(--radius) var(--radius) var(--radius);
+    padding:22px;
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:22px;
+  }
+  .panel.single{ grid-template-columns:1fr; max-width:560px; margin:0 auto; }
+  @media (max-width:760px){ .panel{grid-template-columns:1fr;} }
+
+  .cal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .cal-head button{
+    border:none; background:var(--court-green); color:var(--line-white);
+    width:30px;height:30px; border-radius:50%; cursor:pointer; font-size:15px;
+  }
+  .cal-head .month-label{ font-family:'Shippori Mincho', serif; font-weight:700; font-size:17px; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-dow{ text-align:center; font-size:11px; color:var(--ink-soft); padding-bottom:4px; }
+  .cal-cell{
+    position:relative; min-height:90px; border:1px solid var(--border); border-radius:8px;
+    padding:4px 5px; cursor:pointer; background:#fff;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .cal-cell .d{ font-size:12px; color:var(--ink-soft); }
+  .cal-title{
+    font-size:10px; font-weight:700; color:var(--court-green-dark);
+    text-align:center; line-height:1.15; overflow:hidden; text-overflow:ellipsis;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    word-break:break-all; padding:0 2px;
+  }
+  .cal-time-stack{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    line-height:1.15; flex:1;
+  }
+  .cal-time-num{ font-size:13px; font-weight:700; color:var(--court-green-dark); }
+  .cal-time-tilde{ font-size:10px; color:var(--ink-soft); margin:1px 0; display:inline-block; transform:rotate(90deg); }
+  .cal-cell.empty{ visibility:hidden; }
+  .cal-cell.today{ border-color:var(--ball-dark); border-width:2px; }
+  .cal-cell.selected{ outline:3px solid var(--court-green); outline-offset:-3px; }
+  .cal-cell.type-match{ background:var(--match); }
+  .cal-cell.type-practice{ background:var(--practice); }
+  .cal-cell.type-off{ background:var(--off); border-style:dashed; }
+  .cal-cell.has-reflection{ box-shadow: inset 0 0 0 3px var(--refl); }
+  .dots{ display:flex; gap:3px; flex-wrap:wrap; }
+  .dot{ width:6px; height:6px; border-radius:50%; }
+  .dot.absent{ background:var(--alert); }
+  .dot.practice{ background:var(--court-green); }
+
+  .legend{ display:flex; gap:12px; margin-top:12px; font-size:11px; color:var(--ink-soft); flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .swatch{ width:10px; height:10px; border-radius:3px; display:inline-block; border:1px solid var(--border); }
+
+  .date-title{ font-family:'Shippori Mincho', serif; font-size:20px; font-weight:700; margin:0 0 14px; color:var(--court-green); }
+  .card{ border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; background:#fff; }
+  .card h3{ margin:0 0 10px; font-size:13px; letter-spacing:.08em; color:var(--ink-soft); display:flex; align-items:center; justify-content:space-between; }
+  .field-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .field-row input, .field-row textarea, .field-row select{
+    font-family:inherit; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:14px; flex:1; min-width:120px;
+  }
+  textarea{ resize:vertical; min-height:60px; width:100%; }
+  .btn{
+    border:none; background:var(--court-green); color:var(--line-white);
+    padding:9px 16px; border-radius:999px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer;
+  }
+  .btn.ghost{ background:transparent; color:var(--court-green); border:1px solid var(--court-green); }
+  .btn.alert{ background:var(--alert); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .sched-view{ font-size:14px; line-height:1.7; }
+  .sched-view .empty-note{ color:var(--ink-soft); font-style:italic; }
+  .type-badge{ display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; margin-bottom:6px; }
+  .type-badge.practice{ background:var(--practice); color:#0d4a5c; }
+  .type-badge.match{ background:var(--match); color:#5c4a00; }
+  .type-badge.off{ background:var(--off); color:var(--ink-soft); border:1px solid var(--border); }
+  .list-item{ border-top:1px solid var(--border); padding:8px 0; font-size:13.5px; display:flex; justify-content:space-between; gap:10px; }
+  .list-item:first-child{ border-top:none; }
+  .list-item .name{ font-weight:700; color:var(--court-green); }
+  .list-item .meta{ color:var(--ink-soft); font-size:11px; }
+  .refl-body{ white-space:pre-wrap; font-size:13.5px; margin-top:2px; }
+  .refl-menu{ display:inline-block; background:var(--ball); color:var(--court-green-dark); font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin-bottom:4px; }
+  .status-msg{ font-size:12px; color:var(--ink-soft); margin-top:6px; min-height:16px; }
+  .status-msg.err{ color:var(--alert); font-weight:700; }
+  .hint{ font-size:12px; color:var(--ink-soft); margin-top:-4px; margin-bottom:10px; }
+
+  /* Login overlay */
+  .login-wrap{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-card{
+    background:var(--surface); border-radius:18px; padding:32px; width:100%; max-width:380px;
+  }
+  .login-card .eyebrow{ font-family:'Shippori Mincho', serif; font-size:12px; letter-spacing:.3em; color:var(--court-green); margin-bottom:6px; }
+  .login-card h2{ font-family:'Shippori Mincho', serif; margin:0 0 20px; color:var(--court-green-dark); }
+  .login-role-switch{ display:flex; gap:8px; margin-bottom:18px; }
+  .login-role-switch button{
+    flex:1; padding:10px; border:1px solid var(--border); background:#fff; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700; color:var(--ink-soft);
+  }
+  .login-role-switch button.active{ background:var(--court-green); color:var(--line-white); border-color:var(--court-green); }
+  .login-card select, .login-card input{
+    width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:14px; margin-bottom:12px;
+  }
+  .login-card .btn{ width:100%; padding:11px; font-size:14px; }
+  .settings-list .list-item{ align-items:center; }
+  .chat-tab-row{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .chat-tab{
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--ink-soft);
+    padding:7px 14px;
+    border-radius:999px;
+    font-family:inherit;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  .chat-tab.active{ background:var(--court-green); color:var(--line-white); border-color:var(--court-green); }
+  .chat-count{
+    display:inline-block;
+    background:var(--refl);
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    padding:1px 6px;
+    border-radius:999px;
+    margin-left:4px;
+  }
+  .tab-badge{
+    display:inline-block;
+    background:var(--refl);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    padding:1px 7px;
+    border-radius:999px;
+    vertical-align:middle;
+  }
+  .bulk-toolbar{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .demo-banner{
+    background:var(--refl);
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    padding:10px 16px;
+    border-radius:10px;
+    margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .demo-banner button{
+    border:none;
+    background:rgba(255,255,255,0.25);
+    color:#fff;
+    padding:5px 12px;
+    border-radius:999px;
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .cal-cell.bulk-picked{ outline:3px solid var(--ball-dark); outline-offset:-3px; }
+  .cal-cell.bulk-picked:after{
+    content:"✓";
+    position:absolute;
+    top:2px; right:4px;
+    font-size:10px;
+    font-weight:700;
+    color:var(--court-green-dark);
+  }
+  .menu-check{
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid var(--border); background:#fff;
+    padding:5px 12px; border-radius:999px; font-size:12.5px; cursor:pointer;
+  }
+  .menu-check input{ margin:0; width:auto; }
+  .refl-accordion-item{ border-top:1px solid var(--border); }
+  .refl-accordion-item:first-child{ border-top:none; }
+  .refl-name-btn{
+    width:100%; display:flex; justify-content:space-between; align-items:center;
+    border:none; background:transparent; padding:10px 2px; cursor:pointer; font-family:inherit; text-align:left;
+  }
+  .refl-name-btn .name{ font-weight:700; color:var(--court-green); }
+  .refl-name-btn .meta{ font-size:11px; color:var(--ink-soft); }
+  .refl-detail{ padding:0 2px 12px; }
+  .refl-section-label{ font-size:11px; font-weight:700; color:var(--ink-soft); margin-top:8px; margin-bottom:2px; }
+  .time-range-picker{ display:flex; align-items:center; gap:3px; flex-wrap:wrap; }
+  .time-range-picker select{ min-width:56px; flex:none; padding:8px 6px; }
+  .time-range-picker .tr-label{ font-size:12.5px; color:var(--ink-soft); margin-right:4px; }
+  .time-range-picker .tr-tilde{ font-size:15px; color:var(--ink-soft); margin:0 6px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+
+let schedule = {};    // { date: {time, place, content, type: 'practice'|'match'|'off', updatedAt} }
+let absences = {};    // { date: [{name, reason, ts}] }
+let reflections = {}; // { date: [{name, menu, notes, ts}] }
+let roster = { teacherPasscode: null, students: [] }; // shared
+let broadcasts = [];      // shared: [{text, ts}]  先生→全体
+let privateThreads = {};  // shared: { studentName: [{from:'student'|'teacher', text, ts}] }
+let lastSeen = {};        // shared: { name: timestamp } お知らせタブを最後に見た時刻
+let lastSeenWriteAt = 0;  // 直近でlastSeenを保存した時刻（連続保存を防ぐため）
+let survey = { active:false, question:"", numChoices:3, createdAt:0 }; // shared: アンケート設定
+let surveyResponses = {}; // shared: { studentName: { rankings:[name,...], submittedAt } }
+let surveyCreating = false; // 先生がアンケート新規作成フォームを表示中か（ローカル状態）
+let surveyDeleteConfirming = false; // 先生がアンケート削除の確認表示中か（ローカル状態）
+
+let session = null; // {role:'teacher'|'student', name:string}  (memory only, must log in each visit)
+
+let viewYear, viewMonth;
+let selectedDate = fmtDate(new Date());
+let activeTab = "schedule";
+let selectedThreadStudent = ""; // 先生が個人連絡を見る相手
+let previewAsStudent = false; // 先生が「生徒からの見え方」を確認するデモモード
+function isTeacherNow(){ return session.role==="teacher" && !previewAsStudent; }
+
+let bulkMode = false;
+let bulkSelectedDates = new Set(); // 一括設定モードで選択中の日付
+let expandedReflections = new Set(); // 開いている反省（アコーディオン）のキー
+let loginRoleChoice = "student";
+let loginSelectedStudent = "";
+let loginErr = "";
+
+function fmtDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseDate(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function fmtDateLabel(s){ const d=parseDate(s); const dow=["日","月","火","水","木","金","土"][d.getDay()]; return `${d.getMonth()+1}月${d.getDate()}日（${dow}）`; }
+function escapeHtml(str){ return (str||"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwMRFOkIbLGUqtDwmzP1AtT5fam_t-tzs9MX8eXEaXfrwCrKHElV475fJyTHSRC8TTp/exec";
+
+async function safeGetKeep(key, shared, fallback){
+  // 取得に失敗した場合や、まだサーバー側に反映されていない場合でも
+  // 手元のデータを勝手に消さない（初回のみ fallback を使う）
+  try{
+    const res = await fetch(GAS_URL + "?key=" + encodeURIComponent(key));
+    const data = await res.json();
+    if(data && typeof data.value === "string" && data.value !== ""){
+      return JSON.parse(data.value);
+    }
+    return fallback;
+  }catch(e){
+    console.error("storage get failed", key, e);
+    return fallback;
+  }
+}
+async function safeSet(key, value, shared){
+  try{
+    await fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ key: key, value: JSON.stringify(value) })
+    });
+  }catch(e){ console.error("storage set failed", key, e); }
+}
+
+async function loadAll(){
+  const [s, a, r, ro, bc, pt, ls, sd] = await Promise.all([
+    safeGetKeep("schedule", true, schedule),
+    safeGetKeep("absences", true, absences),
+    safeGetKeep("reflections", true, reflections),
+    safeGetKeep("roster", true, roster),
+    safeGetKeep("broadcasts", true, broadcasts),
+    safeGetKeep("privateThreads", true, privateThreads),
+    safeGetKeep("lastSeen", true, lastSeen),
+    safeGetKeep("surveyData", true, { survey, surveyResponses }),
+  ]);
+  schedule = s || {};
+  absences = a || {};
+  reflections = r || {};
+  roster = ro || { teacherPasscode: null, students: [] };
+  broadcasts = bc || [];
+  privateThreads = pt || {};
+  lastSeen = ls || {};
+  survey = (sd && sd.survey) || { active:false, question:"", numChoices:3, createdAt:0 };
+  surveyResponses = (sd && sd.surveyResponses) || {};
+}
+async function saveSurveyData(){
+  await safeSet("surveyData", { survey, surveyResponses }, true);
+}
+
+const now = new Date();
+viewYear = now.getFullYear();
+viewMonth = now.getMonth();
+
+async function boot(){
+  await loadAll();
+  render();
+  setInterval(async ()=>{
+    await loadAll();
+    const active = document.activeElement;
+    const isEditing = active && (active.tagName==="INPUT" || active.tagName==="TEXTAREA" || active.tagName==="SELECT");
+    if(!isEditing){ render(); }
+  }, 30000);
+}
+
+function render(){
+  const root = $("#root");
+  if(!session){
+    root.innerHTML = renderLogin();
+    bindLoginEvents();
+    return;
+  }
+  root.innerHTML = renderApp();
+  bindAppEvents();
+}
+
+/* ---------------- LOGIN ---------------- */
+function renderLogin(){
+  const needsTeacherSetup = !roster.teacherPasscode;
+  return `
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="eyebrow">SOFT TENNIS CLUB</div>
+      <h2>ログイン</h2>
+      <div class="login-role-switch">
+        <button data-role="student" class="${loginRoleChoice==='student'?'active':''}">生徒</button>
+        <button data-role="teacher" class="${loginRoleChoice==='teacher'?'active':''}">先生</button>
+      </div>
+      ${loginRoleChoice==='student' ? renderStudentLoginForm() : renderTeacherLoginForm(needsTeacherSetup)}
+      ${loginErr ? `<div class="status-msg err">${escapeHtml(loginErr)}</div>` : ``}
+    </div>
+  </div>`;
+}
+function renderStudentLoginForm(){
+  if(roster.students.length===0){
+    return `<div class="hint">まだ生徒が登録されていません。先生に登録を依頼してください。</div>`;
+  }
+  const selectHtml = `
+    <select id="loginName">
+      <option value="">名前を選ぶ</option>
+      ${roster.students.map(s=>`<option value="${escapeHtml(s.name)}" ${s.name===loginSelectedStudent?'selected':''}>${escapeHtml(s.name)}</option>`).join("")}
+    </select>
+  `;
+  const selected = roster.students.find(s=>s.name===loginSelectedStudent);
+  if(!selected){ return selectHtml; }
+  if(!selected.passcode){
+    return selectHtml + `
+      <div class="hint">初めてのログインです。自分だけのパスコードを決めてください（先生は忘れたときのために確認できます）。</div>
+      <input id="setupPass1" type="password" placeholder="新しいパスコード（4文字以上）">
+      <input id="setupPass2" type="password" placeholder="もう一度入力">
+      <button class="btn" id="studentSetupSubmit">パスコードを設定してログイン</button>
+    `;
+  }
+  return selectHtml + `
+    <input id="loginPass" type="password" placeholder="パスコード">
+    <button class="btn" id="loginSubmit">ログイン</button>
+  `;
+}
+function renderTeacherLoginForm(needsSetup){
+  if(needsSetup){
+    return `
+      <div class="hint">初回設定：先生用のパスコードを決めてください。</div>
+      <input id="setupPass1" type="password" placeholder="新しいパスコード">
+      <input id="setupPass2" type="password" placeholder="もう一度入力">
+      <button class="btn" id="setupSubmit">パスコードを設定してログイン</button>
+    `;
+  }
+  return `
+    <input id="loginPass" type="password" placeholder="先生用パスコード">
+    <button class="btn" id="loginSubmit">ログイン</button>
+  `;
+}
+function bindLoginEvents(){
+  $$(".login-role-switch button").forEach(b=>{
+    b.onclick = ()=>{ loginRoleChoice = b.dataset.role; loginSelectedStudent=""; loginErr=""; render(); };
+  });
+  const nameSel = $("#loginName");
+  if(nameSel){
+    nameSel.onchange = ()=>{ loginSelectedStudent = nameSel.value; loginErr=""; render(); };
+  }
+  const setupBtn = $("#setupSubmit");
+  if(setupBtn){
+    setupBtn.onclick = async ()=>{
+      const p1 = $("#setupPass1").value;
+      const p2 = $("#setupPass2").value;
+      if(!p1 || p1.length<3){ loginErr="4文字以上のパスコードにしてください。"; render(); return; }
+      if(p1!==p2){ loginErr="パスコードが一致しません。"; render(); return; }
+      await loadAll();
+      if(roster.teacherPasscode){ loginErr="すでに設定済みです。ログインし直してください。"; render(); return; }
+      roster.teacherPasscode = p1;
+      await safeSet("roster", roster, true);
+      session = { role:"teacher", name:"先生" };
+      loginErr="";
+      render();
+    };
+  }
+  const studentSetupBtn = $("#studentSetupSubmit");
+  if(studentSetupBtn){
+    studentSetupBtn.onclick = async ()=>{
+      const p1 = $("#setupPass1").value;
+      const p2 = $("#setupPass2").value;
+      if(!p1 || p1.length<4){ loginErr="パスコードは4文字以上にしてください。"; render(); return; }
+      if(p1!==p2){ loginErr="パスコードが一致しません。"; render(); return; }
+      await loadAll(); // 他の生徒の変更を消さないよう最新状態を取得してから書き込む
+      const idx = roster.students.findIndex(s=>s.name===loginSelectedStudent);
+      if(idx===-1){ loginErr="生徒情報が見つかりませんでした。もう一度お試しください。"; render(); return; }
+      if(roster.students[idx].passcode){ loginErr="すでにパスコードが設定されています。ログインし直してください。"; render(); return; }
+      roster.students[idx].passcode = p1;
+      await safeSet("roster", roster, true);
+      session = { role:"student", name: loginSelectedStudent };
+      loginErr="";
+      render();
+    };
+  }
+  const submitBtn = $("#loginSubmit");
+  if(submitBtn){
+    submitBtn.onclick = async ()=>{
+      await loadAll(); // 最新のロースターで確認
+      if(loginRoleChoice==="teacher"){
+        const pass = $("#loginPass").value;
+        if(pass && pass === roster.teacherPasscode){
+          session = { role:"teacher", name:"先生" };
+          loginErr="";
+        }else{
+          loginErr = "パスコードが違います。";
+        }
+      }else{
+        const name = loginSelectedStudent;
+        const pass = $("#loginPass").value;
+        const student = roster.students.find(s=>s.name===name);
+        if(!name){ loginErr="名前を選んでください。"; render(); return; }
+        if(student && pass === student.passcode){
+          session = { role:"student", name };
+          loginErr="";
+        }else{
+          loginErr = "パスコードが違います。";
+        }
+      }
+      render();
+    };
+  }
+}
+
+function countUnread(){
+  if(!session || previewAsStudent) return 0;
+  const since = lastSeen[session.name] || 0;
+  let count = broadcasts.filter(b=>b.ts > since).length;
+  Object.keys(absences).forEach(date=>{
+    (absences[date]||[]).forEach(a=>{
+      if(a.ts > since && a.name !== session.name) count++;
+    });
+  });
+  if(session.role==="teacher"){
+    Object.keys(privateThreads).forEach(name=>{
+      (privateThreads[name]||[]).forEach(m=>{
+        if(m.ts > since && m.from==="student") count++;
+      });
+    });
+  }else{
+    (privateThreads[session.name]||[]).forEach(m=>{
+      if(m.ts > since && m.from==="teacher") count++;
+    });
+  }
+  return count;
+}
+function renderUnreadBadge(){
+  const n = countUnread();
+  return n>0 ? ` <span class="tab-badge">${n}</span>` : '';
+}
+
+/* ---------------- MAIN APP ---------------- */
+function renderApp(){
+  const isTeacher = isTeacherNow();
+  const isRealTeacher = session.role==="teacher";
+  return `
+  <div class="app">
+    ${previewAsStudent ? `
+      <div class="demo-banner">
+        🔍 デモモード：生徒からはこう見えています（実際に送信・保存はされません）
+        <button id="exitDemoBtn">デモモードを終了</button>
+      </div>
+    `:''}
+    <header class="top">
+      <div class="brand">
+        <div class="brand-row">
+          <div class="emblem">SOGO</div>
+          <div>
+            <div class="eyebrow">観音寺総合高校 SOFT TENNIS CLUB</div>
+            <h1>部活ノート</h1>
+          </div>
+        </div>
+      </div>
+      <div class="session-box">
+        <span class="tag">${isTeacher? "先生":"生徒"}</span>
+        <span>${previewAsStudent ? "（デモ）生徒" : escapeHtml(session.name)+" さん"}</span>
+        ${isRealTeacher && !previewAsStudent? `<button id="enterDemoBtn">生徒からの見え方を確認</button>`:''}
+        <button id="logoutBtn">ログアウト</button>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button data-tab="schedule" class="${activeTab==='schedule'?'active':''}">① スケジュール・欠席連絡</button>
+      <button data-tab="reflection" class="${activeTab==='reflection'?'active':''}">② 振り返り</button>
+      <button data-tab="notice" class="${activeTab==='notice'?'active':''}">③ お知らせ・連絡${renderUnreadBadge()}</button>
+      ${isTeacher? `<button data-tab="settings" class="${activeTab==='settings'?'active':''}">設定（生徒管理）</button>`:''}
+    </div>
+
+    ${activeTab==='settings' ? renderSettingsPanel() : (activeTab==='notice' ? renderNoticePanel() : renderMainPanel())}
+  </div>`;
+}
+
+function renderMainPanel(){
+  return `
+  <div class="panel">
+    <div>
+      ${renderCalendarHtml()}
+    </div>
+    <div id="detailArea">${renderDetailHtml()}</div>
+  </div>`;
+}
+
+function renderCalendarHtml(){
+  const monthLabel = `${viewYear}年 ${viewMonth+1}月`;
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+  const todayStr = fmtDate(new Date());
+
+  let cells = "";
+  ["日","月","火","水","木","金","土"].forEach(d=> cells += `<div class="cal-dow">${d}</div>`);
+  for(let i=0;i<startOffset;i++) cells += `<div class="cal-cell empty"></div>`;
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const s = schedule[dateStr];
+    const type = s ? (s.type||"practice") : null;
+    const classes = ["cal-cell"];
+    if(dateStr===todayStr) classes.push("today");
+    if(dateStr===selectedDate && !bulkMode) classes.push("selected");
+    if(bulkMode && bulkSelectedDates.has(dateStr)) classes.push("bulk-picked");
+    if(type==="match") classes.push("type-match");
+    if(type==="practice") classes.push("type-practice");
+    if(type==="off") classes.push("type-off");
+    if(reflections[dateStr] && reflections[dateStr].length) classes.push("has-reflection");
+    const dots = [];
+    if(absences[dateStr] && absences[dateStr].length) dots.push('<span class="dot absent"></span>');
+    const timeLabel = (s && s.time) ? s.time : "";
+    const titleLabel = (s && s.title) ? s.title : "";
+    const timeParts = parseTimeRange(timeLabel);
+    const timeHtml = timeParts
+      ? `<div class="cal-time-stack">
+           <div class="cal-time-num">${timeParts.sh}:${String(timeParts.sm).padStart(2,'0')}</div>
+           <div class="cal-time-tilde">〜</div>
+           <div class="cal-time-num">${timeParts.eh}:${String(timeParts.em).padStart(2,'0')}</div>
+         </div>`
+      : (timeLabel ? `<div class="cal-time-stack"><div class="cal-time-num" style="font-size:9px;">${escapeHtml(timeLabel)}</div></div>` : '');
+    const titleHtml = titleLabel ? `<div class="cal-title">${escapeHtml(titleLabel)}</div>` : '';
+    cells += `<div class="${classes.join(' ')}" data-date="${dateStr}"><span class="d">${day}</span>${titleHtml}${timeHtml}<span class="dots">${dots.join("")}</span></div>`;
+  }
+  return `
+    <div class="cal-head">
+      <button id="prevMonth">‹</button>
+      <div class="month-label">${monthLabel}</div>
+      <button id="nextMonth">›</button>
+    </div>
+    <div class="cal-grid">${cells}</div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--practice);"></span>練習あり</span>
+      <span><span class="swatch" style="background:var(--match);"></span>試合・練習試合</span>
+      <span><span class="swatch" style="background:var(--off);border-style:dashed;"></span>オフ</span>
+      <span><span class="swatch" style="background:#fff;box-shadow:inset 0 0 0 2px var(--refl);"></span>振り返り提出済み</span>
+      <span><span class="dot absent"></span>欠席あり</span>
+    </div>
+  `;
+}
+
+function renderDetailHtml(){
+  const isTeacher = isTeacherNow();
+  if(activeTab === "schedule"){
+    if(isTeacher && bulkMode){
+      return renderBulkScheduleForm();
+    }
+    const s = schedule[selectedDate];
+    const type = s ? (s.type||"practice") : "practice";
+    const typeLabel = {practice:"練習あり", match:"試合・練習試合", off:"オフ"};
+    return `
+      <h2 class="date-title">${fmtDateLabel(selectedDate)}</h2>
+      <div class="card">
+        <h3>予定 ${isTeacher? '<span style="font-size:11px;color:var(--ink-soft);">（先生のみ編集可）</span>':''}</h3>
+        ${isTeacher ? `
+          <div class="field-row">
+            <select id="schedType">
+              <option value="practice" ${type==='practice'?'selected':''}>練習あり（水色）</option>
+              <option value="match" ${type==='match'?'selected':''}>試合・練習試合（黄色）</option>
+              <option value="off" ${type==='off'?'selected':''}>オフ（白）</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <input id="schedTitle" placeholder="行事名・対戦相手など（例: 県総体、vs〇〇中）" value="${s? escapeHtml(s.title||''):''}">
+          </div>
+          <div class="field-row">
+            ${renderTimeRangePicker('schedTime', s? s.time||'':'')}
+          </div>
+          <div class="field-row">
+            <input id="schedPlace" placeholder="場所（例: 第一体育館）" value="${s? s.place||'':''}">
+          </div>
+          <div class="field-row">
+            <textarea id="schedContent" placeholder="内容・持ち物・注意事項など">${s? s.content||'':''}</textarea>
+          </div>
+          <button class="btn" id="saveSched">この日の予定を保存</button>
+          ${s? `<button class="btn ghost" id="clearSched" style="margin-left:8px;">予定を削除</button>`:''}
+          <button class="btn ghost" id="enterBulk" style="margin-left:8px;">複数日をまとめて設定</button>
+          <div class="status-msg" id="schedMsg"></div>
+        ` : `
+          <div class="sched-view">
+            ${s ? `<span class="type-badge ${type}">${typeLabel[type]}</span>${s.title? `<div style="font-weight:700;margin-top:4px;">${escapeHtml(s.title)}</div>`:''}<div style="margin-top:4px;"><strong>${s.time||"（時間未定）"}</strong> ／ ${s.place||"場所未定"}</div><div style="margin-top:6px;white-space:pre-wrap;">${escapeHtml(s.content||"")}</div>`
+                : `<div class="empty-note">この日はまだ予定が入力されていません。</div>`}
+          </div>
+        `}
+      </div>
+
+      <div class="card">
+        <h3>欠席連絡</h3>
+        ${!isTeacher ? `
+          <div class="field-row">
+            <select id="absentType">
+              <option value="absent">欠席</option>
+              <option value="late">遅刻</option>
+              <option value="early">早退</option>
+            </select>
+            <input id="absentReason" placeholder="理由（例: 通院、体調不良、用事）">
+            <button class="btn alert" id="addAbsent">全体に連絡する</button>
+          </div>
+          <div class="hint">送信すると「お知らせ」タブにも全員に見える形で通知されます。</div>
+          <div class="status-msg" id="absentMsg"></div>
+        `: ``}
+        <div id="absentList">${renderAbsentListHtml(isTeacher)}</div>
+      </div>
+    `;
+  } else if(activeTab === "reflection"){
+    const arr = reflections[selectedDate] || [];
+    const todayStr = fmtDate(new Date());
+    const isFuture = selectedDate > todayStr;
+    return `
+      <h2 class="date-title">${fmtDateLabel(selectedDate)} の振り返り</h2>
+      ${!isTeacher && !isFuture ? `
+        <div class="card">
+          <h3>振り返りを書く</h3>
+          <div class="field-row">
+            <div style="width:100%;">
+              <div class="hint" style="margin-bottom:4px;">① プレー面での振り返り・学び</div>
+              <textarea id="reflPlayNotes" placeholder="技術・戦術面で気づいたこと、うまくいったこと、次への課題など"></textarea>
+            </div>
+          </div>
+          <div class="field-row">
+            <div style="width:100%;">
+              <div class="hint" style="margin-bottom:4px;">② 練習の雰囲気・取り組み面での振り返り・学び</div>
+              <textarea id="reflAttitudeNotes" placeholder="声かけ、集中度、チームワークなど"></textarea>
+            </div>
+          </div>
+          <button class="btn" id="addRefl">振り返りを提出する</button>
+          <div class="status-msg" id="reflMsg"></div>
+        </div>
+
+        <div class="card">
+          <h3>試合を記録する</h3>
+          <div class="hint" style="margin-top:-4px;">試合が終わるごとに、1試合ずつ記録できます。</div>
+          <div class="hint" style="margin-bottom:4px;">パートナー</div>
+          ${renderPersonPicker('reflPartner','', session.name)}
+          <div class="hint" style="margin:10px 0 4px;">対戦相手①</div>
+          ${renderPersonPicker('reflOppA','', session.name)}
+          <div class="hint" style="margin:10px 0 4px;">対戦相手②</div>
+          ${renderPersonPicker('reflOppB','', session.name)}
+          <div class="hint" style="margin:10px 0 4px;">ゲームカウント</div>
+          <input id="reflGameCount" placeholder="例: 4-2、5-3など">
+          <div class="hint" style="margin:10px 0 4px;">この試合の振り返り（任意）</div>
+          <textarea id="reflMatchNotes" placeholder="この試合で気づいたこと、学びなど"></textarea>
+          <button class="btn" id="addMatchRefl" style="margin-top:10px;">この試合を記録する</button>
+          <div class="status-msg" id="matchReflMsg"></div>
+        </div>
+      `: ''}
+      ${!isTeacher && isFuture ? `
+        <div class="card">
+          <div class="hint" style="margin:0;">この日はまだ来ていないので、振り返りはまだ書き込めません。当日になったら書き込めます。</div>
+        </div>
+      `: ''}
+      <div class="card">
+        <h3>この日の振り返り一覧（${arr.length}件）</h3>
+        <div class="hint" style="margin-top:-4px;">名前をタップすると内容が開きます。</div>
+        <div id="reflList">${renderReflListHtml(arr, isTeacher)}</div>
+      </div>
+    `;
+  }
+  return "";
+}
+
+function normalizeDigits(str){
+  return str.replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+}
+function parseTimeRange(value){
+  if(!value) return null;
+  let v = normalizeDigits(String(value)).replace(/時/g, ":").replace(/分/g, "").trim();
+  const m = v.match(/(\d{1,2})\s*:?\s*(\d{1,2})?\s*[〜\-~]\s*(\d{1,2})\s*:?\s*(\d{1,2})?/);
+  if(!m) return null;
+  const sh = parseInt(m[1],10);
+  const sm = m[2] ? parseInt(m[2],10) : 0;
+  const eh = parseInt(m[3],10);
+  const em = m[4] ? parseInt(m[4],10) : 0;
+  if(isNaN(sh)||isNaN(sm)||isNaN(eh)||isNaN(em)) return null;
+  return { sh, sm, eh, em };
+}
+const MINUTE_STEPS = [0,5,10,15,20,25,30,35,40,45,50,55];
+function snapToStep(m){
+  return MINUTE_STEPS.reduce((prev,curr)=> Math.abs(curr-m)<Math.abs(prev-m)?curr:prev);
+}
+function renderTimeRangePicker(baseId, currentValue){
+  const p = parseTimeRange(currentValue) || { sh:16, sm:0, eh:18, em:0 };
+  const smSnapped = snapToStep(p.sm);
+  const emSnapped = snapToStep(p.em);
+  const hourOpts = (sel)=> Array.from({length:24},(_,h)=>`<option value="${h}" ${h===sel?'selected':''}>${h}</option>`).join("");
+  const minOpts = (sel)=> MINUTE_STEPS.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${String(m).padStart(2,'0')}</option>`).join("");
+  return `
+    <div class="time-range-picker">
+      <select id="${baseId}SH">${hourOpts(p.sh)}</select><span class="tr-label">時</span>
+      <select id="${baseId}SM">${minOpts(smSnapped)}</select><span class="tr-label">分</span>
+      <span class="tr-tilde">〜</span>
+      <select id="${baseId}EH">${hourOpts(p.eh)}</select><span class="tr-label">時</span>
+      <select id="${baseId}EM">${minOpts(emSnapped)}</select><span class="tr-label">分</span>
+    </div>
+  `;
+}
+function readTimeRange(baseId){
+  const sh = document.getElementById(baseId+"SH");
+  const sm = document.getElementById(baseId+"SM");
+  const eh = document.getElementById(baseId+"EH");
+  const em = document.getElementById(baseId+"EM");
+  if(!sh||!sm||!eh||!em) return "";
+  return `${sh.value}:${String(sm.value).padStart(2,'0')}〜${eh.value}:${String(em.value).padStart(2,'0')}`;
+}
+
+function renderPersonPicker(baseId, currentValue, excludeName){
+  const isRosterName = roster.students.some(s=>s.name===currentValue);
+  const showCustom = currentValue !== "" && !isRosterName;
+  const options = roster.students.filter(s=> s.name !== excludeName);
+  return `
+    <div style="width:100%;">
+      <select id="${baseId}Select" onchange="handlePersonPickerChange(this,'${baseId}CustomWrap')">
+        <option value="">選択してください</option>
+        ${options.map(s=>`<option value="${escapeHtml(s.name)}" ${currentValue===s.name?'selected':''}>${escapeHtml(s.name)}</option>`).join("")}
+        <option value="custom" ${showCustom?'selected':''}>部員以外（自由記述）</option>
+      </select>
+      <div id="${baseId}CustomWrap" style="margin-top:6px;display:${showCustom?'block':'none'};">
+        <input id="${baseId}Custom" placeholder="名前を入力" value="${showCustom? escapeHtml(currentValue):''}">
+      </div>
+    </div>
+  `;
+}
+function handlePersonPickerChange(selectEl, wrapId){
+  const wrap = document.getElementById(wrapId);
+  if(!wrap) return;
+  wrap.style.display = selectEl.value === "custom" ? "block" : "none";
+}
+function readPersonPicker(baseId){
+  const sel = document.getElementById(baseId+"Select");
+  if(!sel) return "";
+  if(sel.value === "custom"){
+    const c = document.getElementById(baseId+"Custom");
+    return c ? c.value.trim() : "";
+  }
+  return sel.value;
+}
+
+function renderBulkScheduleForm(){
+  const n = bulkSelectedDates.size;
+  const sortedDates = [...bulkSelectedDates].sort();
+  const preview = sortedDates.map(d=>{ const dd=parseDate(d); return `${dd.getMonth()+1}/${dd.getDate()}`; }).join("、");
+  return `
+    <h2 class="date-title">複数日をまとめて設定</h2>
+    <div class="card">
+      <div class="hint" style="margin-bottom:12px;">カレンダーの日付をクリックして対象日を選んでください（月を移動しても選択は消えません）。現在 <strong>${n}日</strong> を選択中です。</div>
+      ${n>0 ? `<div class="hint" style="margin-top:-8px;">選択中：${preview}</div>` : ''}
+      <div class="field-row">
+        <select id="bulkType">
+          <option value="practice">練習あり（水色）</option>
+          <option value="match">試合・練習試合（黄色）</option>
+          <option value="off">オフ（白）</option>
+        </select>
+      </div>
+      <div class="field-row">
+        ${renderTimeRangePicker('bulkTime', '')}
+      </div>
+      <div class="field-row">
+        <input id="bulkPlace" placeholder="場所（例: 第一体育館）">
+      </div>
+      <div class="field-row">
+        <textarea id="bulkContent" placeholder="内容・持ち物・注意事項など"></textarea>
+      </div>
+      <div class="bulk-toolbar">
+        <button class="btn" id="applyBulk" ${n===0?'disabled':''}>選択した${n}日にまとめて設定する</button>
+        <button class="btn ghost" id="clearBulkSel">選択をクリア</button>
+        <button class="btn ghost" id="exitBulk">一括設定モードを終了</button>
+      </div>
+      <div class="status-msg" id="bulkMsg"></div>
+    </div>
+  `;
+}
+
+
+function renderAbsentListHtml(isTeacher){
+  const arr = absences[selectedDate] || [];
+  if(arr.length===0) return `<div class="hint" style="margin:0;">この日の欠席・遅刻・早退連絡はまだありません。</div>`;
+  return arr.map((a,i)=>{
+    const label = a.type==="early" ? "早退" : (a.type==="late" ? "遅刻" : "欠席");
+    return `
+    <div class="list-item">
+      <div><span class="name">${escapeHtml(a.name)}</span>（${label}）：${escapeHtml(a.reason||"（理由未記入）")}</div>
+      ${isTeacher ? `<button class="btn ghost" style="padding:3px 10px;font-size:11px;" onclick="removeAbsence(${i})">削除</button>` : `<span class="meta">${new Date(a.ts).toLocaleDateString()}</span>`}
+    </div>
+  `;
+  }).join("");
+}
+
+function renderReflListHtml(arr, isTeacher){
+  if(arr.length===0) return `<div class="hint" style="margin:0;">まだ振り返りが提出されていません。</div>`;
+  const sorted = [...arr].sort((a,b)=>b.ts-a.ts);
+  return sorted.map(r=>{
+    const realIdx = arr.indexOf(r);
+    const key = `${selectedDate}-${r.ts}-${realIdx}`;
+    const expanded = expandedReflections.has(key);
+    const playText = r.playNotes || "";
+    const attitudeText = r.attitudeNotes || "";
+    // 後方互換: 旧フォーマット（isMatchの単体エントリ）を matches 配列に変換
+    let matches = Array.isArray(r.matches) ? r.matches : [];
+    if(matches.length===0 && (r.isMatch || r.kind==="match")){
+      matches = [{ partner:r.partner, opponent1:r.opponent1, opponent2:r.opponent2, gameCount:r.gameCount, notes:r.notes }];
+    }
+    const hasMatch = matches.length>0;
+    return `
+    <div class="refl-accordion-item">
+      <button class="refl-name-btn" data-reflkey="${key}">
+        <span class="name">${escapeHtml(r.name)}${hasMatch? ' 🎾':''}</span>
+        <span class="meta">${new Date(r.ts).toLocaleString()} ${expanded? '▲':'▼'}</span>
+      </button>
+      ${expanded ? `
+        <div class="refl-detail">
+          ${playText ? `<div class="refl-section-label">① プレー面での振り返り・学び</div><div class="refl-body">${escapeHtml(playText)}</div>`:''}
+          ${attitudeText ? `<div class="refl-section-label">② 雰囲気・取り組み面での振り返り・学び</div><div class="refl-body">${escapeHtml(attitudeText)}</div>`:''}
+          ${matches.map((m,mi)=>{
+            const opponents = [m.opponent1, m.opponent2].filter(Boolean).join("・") || m.opponent || "";
+            return `
+            <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);">
+              <span class="refl-menu">試合${matches.length>1? (mi+1):''}</span>
+              <div style="margin-top:6px;font-size:13px;">
+                ${m.partner? `<div>パートナー：<strong>${escapeHtml(m.partner)}</strong></div>`:''}
+                ${opponents? `<div>対戦相手：<strong>${escapeHtml(opponents)}</strong></div>`:''}
+                ${m.gameCount? `<div>ゲームカウント：<strong>${escapeHtml(m.gameCount)}</strong></div>`:''}
+              </div>
+              ${m.notes ? `<div class="refl-body" style="margin-top:6px;">${escapeHtml(m.notes)}</div>`:''}
+            </div>`;
+          }).join("")}
+          ${isTeacher? `<button class="btn ghost" style="padding:2px 8px;font-size:11px;margin-top:8px;" onclick="removeReflection(${realIdx})">削除</button>`:''}
+        </div>
+      `:''}
+    </div>`;
+  }).join("");
+}
+
+/* ---------------- NOTICE (broadcasts + absence feed + private messages) ---------------- */
+function renderNoticePanel(){
+  const isTeacher = isTeacherNow();
+  return `
+  <div class="panel single">
+    ${renderSurveyCard(isTeacher)}
+
+    <div class="card">
+      <h3>先生からのお知らせ</h3>
+      ${isTeacher ? `
+        <div class="field-row"><textarea id="broadcastText" placeholder="全体への連絡を入力（例: 明日は体育館が使えません）"></textarea></div>
+        <button class="btn" id="sendBroadcast">全体に送信</button>
+        <div class="status-msg" id="broadcastMsg"></div>
+      `:''}
+      <div style="margin-top:14px;">${renderBroadcastListHtml(isTeacher)}</div>
+    </div>
+
+    <div class="card">
+      <h3>欠席・遅刻・早退の連絡（自動でここに集まります）</h3>
+      ${renderAbsenceFeedHtml()}
+    </div>
+
+    <div class="card">
+      <h3>${isTeacher? "生徒からの個人連絡" : "先生への個人連絡"}</h3>
+      ${isTeacher ? renderTeacherThreadPicker() : ""}
+      <div id="threadArea">${renderThreadHtml(isTeacher)}</div>
+    </div>
+  </div>`;
+}
+
+function renderBroadcastListHtml(isTeacher){
+  if(broadcasts.length===0) return `<div class="hint" style="margin:0;">まだお知らせはありません。</div>`;
+  const ONE_MONTH_MS = 30*24*60*60*1000;
+  const cutoff = Date.now() - ONE_MONTH_MS;
+  const visible = broadcasts.filter(b=> b.ts >= cutoff);
+  const hiddenCount = broadcasts.length - visible.length;
+  if(visible.length===0){
+    return `<div class="hint" style="margin:0;">直近1ヶ月のお知らせはありません（それより前のものは自動的に非表示になっています。削除はされていません）。</div>`;
+  }
+  const sorted = [...visible].sort((a,b)=>b.ts-a.ts);
+  const listHtml = sorted.map(b=>{
+    const idx = broadcasts.indexOf(b);
+    return `
+    <div class="list-item" style="flex-direction:column;align-items:stretch;">
+      <div style="display:flex;justify-content:space-between;">
+        <span class="meta">${new Date(b.ts).toLocaleString()}</span>
+        ${isTeacher? `<button class="btn ghost" style="padding:2px 8px;font-size:11px;" onclick="removeBroadcast(${idx})">削除</button>`:''}
+      </div>
+      <div class="refl-body">${escapeHtml(b.text)}</div>
+    </div>`;
+  }).join("");
+  const footNote = hiddenCount>0 ? `<div class="hint" style="margin-top:8px;">1ヶ月より前のお知らせが${hiddenCount}件あります（自動的に非表示。削除はされていません）。</div>` : '';
+  return listHtml + footNote;
+}
+
+function renderAbsenceFeedHtml(){
+  const feed = [];
+  Object.keys(absences).forEach(date=>{
+    (absences[date]||[]).forEach(a=> feed.push({...a, date: a.date||date}));
+  });
+  if(feed.length===0) return `<div class="hint" style="margin:0;">欠席・遅刻・早退の連絡はまだありません。</div>`;
+  feed.sort((a,b)=>b.ts-a.ts);
+  return feed.slice(0,30).map(a=>{
+    const label = a.type==="early" ? "早退" : (a.type==="late" ? "遅刻" : "欠席");
+    const d = parseDate(a.date);
+    return `
+    <div class="list-item">
+      <div><span class="name">${escapeHtml(a.name)}</span> さんが ${d.getMonth()+1}/${d.getDate()} に${label}（${escapeHtml(a.reason||"理由未記入")}）</div>
+      <span class="meta">${new Date(a.ts).toLocaleDateString()}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderTeacherThreadPicker(){
+  if(roster.students.length===0) return `<div class="hint">生徒が登録されていません。</div>`;
+  return `
+    <div class="chat-tab-row">
+      ${roster.students.map(s=>{
+        const count = (privateThreads[s.name]||[]).length;
+        const active = s.name===selectedThreadStudent;
+        return `<button class="chat-tab ${active?'active':''}" data-student="${escapeHtml(s.name)}">${escapeHtml(s.name)}${count? ` <span class="chat-count">${count}</span>`:''}</button>`;
+      }).join("")}
+    </div>
+  `;
+}
+function selectThreadStudent(name){
+  selectedThreadStudent = name;
+  render();
+}
+
+function renderThreadHtml(isTeacher){
+  const threadName = isTeacher ? selectedThreadStudent : session.name;
+  if(isTeacher && !threadName){
+    return `<div class="hint" style="margin:0;">生徒を選ぶとやり取りが表示されます。</div>`;
+  }
+  const msgs = privateThreads[threadName] || [];
+  const listHtml = msgs.length===0
+    ? `<div class="hint" style="margin:0;">まだメッセージはありません。</div>`
+    : msgs.map(m=>`
+        <div class="list-item" style="flex-direction:column;align-items:stretch;">
+          <div style="display:flex;justify-content:space-between;">
+            <span class="name">${m.from==='teacher'? '先生':escapeHtml(threadName)}</span>
+            <span class="meta">${new Date(m.ts).toLocaleString()}</span>
+          </div>
+          <div class="refl-body">${escapeHtml(m.text)}</div>
+        </div>
+      `).join("");
+  return `
+    <div style="margin-bottom:10px;">${listHtml}</div>
+    <div class="field-row">
+      <input id="threadInput" placeholder="${isTeacher? 'この生徒への返信を入力':'先生へのメッセージを入力'}">
+      <button class="btn" id="sendThreadMsg">送信</button>
+    </div>
+    <div class="status-msg" id="threadMsg"></div>
+  `;
+}
+
+
+function renderSettingsPanel(){
+  return `
+  <div class="panel single">
+    <div class="card">
+      <h3>生徒の登録</h3>
+      <div class="hint">名前だけ登録すれば大丈夫です。パスコードは生徒自身が初回ログイン時に決めます。</div>
+      <div class="field-row">
+        <input id="newStuName" placeholder="生徒の名前">
+      </div>
+      <button class="btn" id="addStuBtn">生徒を追加</button>
+      <div class="status-msg" id="stuMsg"></div>
+    </div>
+    <div class="card settings-list">
+      <h3>登録済みの生徒（${roster.students.length}名）</h3>
+      <div class="hint">パスコードを忘れた生徒がいたら「表示」で確認できます。</div>
+      ${roster.students.length===0 ? `<div class="hint" style="margin:0;">まだ登録されていません。</div>` :
+        roster.students.map((s,i)=>`
+          <div class="list-item">
+            <span class="name">${escapeHtml(s.name)}</span>
+            <div>
+              ${s.passcode
+                ? `<span class="meta" id="pass-${i}">••••</span> <button class="btn ghost" style="padding:2px 8px;font-size:11px;" onclick="togglePassView(${i})" id="passBtn-${i}">表示</button>`
+                : `<span class="meta">未設定</span>`}
+              <button class="btn ghost" style="padding:3px 10px;font-size:11px;margin-left:6px;" onclick="removeStudent(${i})">削除</button>
+            </div>
+          </div>
+        `).join("")}
+    </div>
+    <div class="card">
+      <h3>先生用パスコードの変更</h3>
+      <div class="field-row"><input id="newTeacherPass" type="password" placeholder="新しいパスコード"></div>
+      <button class="btn ghost" id="changeTeacherPassBtn">変更する</button>
+      <div class="status-msg" id="teacherPassMsg"></div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- Event binding ---------------- */
+function bindAppEvents(){
+  $("#logoutBtn").onclick = ()=>{ session=null; previewAsStudent=false; render(); };
+  const enterDemoBtn = $("#enterDemoBtn");
+  if(enterDemoBtn){
+    enterDemoBtn.onclick = ()=>{
+      previewAsStudent = true;
+      if(activeTab==="settings") activeTab = "schedule";
+      bulkMode = false; bulkSelectedDates = new Set();
+      render();
+    };
+  }
+  const exitDemoBtn = $("#exitDemoBtn");
+  if(exitDemoBtn){
+    exitDemoBtn.onclick = ()=>{ previewAsStudent = false; render(); };
+  }
+  $$(".tabs button").forEach(btn=>{
+    btn.onclick = ()=>{
+      activeTab = btn.dataset.tab;
+      if(activeTab!=="schedule"){ bulkMode=false; bulkSelectedDates=new Set(); }
+      if(activeTab!=="notice"){ surveyCreating=false; surveyDeleteConfirming=false; }
+      render();
+    };
+  });
+
+  if(activeTab==="settings"){ bindSettingsEvents(); return; }
+  if(activeTab==="notice"){ bindNoticeEvents(); return; }
+
+  const prevBtn = $("#prevMonth"), nextBtn = $("#nextMonth");
+  if(prevBtn) prevBtn.onclick = ()=>{ viewMonth--; if(viewMonth<0){viewMonth=11;viewYear--;} render(); };
+  if(nextBtn) nextBtn.onclick = ()=>{ viewMonth++; if(viewMonth>11){viewMonth=0;viewYear++;} render(); };
+
+  $$(".cal-cell[data-date]").forEach(cell=>{
+    cell.onclick = ()=>{
+      if(bulkMode && isTeacherNow()){
+        const d = cell.dataset.date;
+        if(bulkSelectedDates.has(d)) bulkSelectedDates.delete(d); else bulkSelectedDates.add(d);
+        render();
+      }else{
+        selectedDate = cell.dataset.date;
+        render();
+      }
+    };
+  });
+
+  const isTeacher = isTeacherNow();
+  if(activeTab==="schedule"){
+    if(isTeacher && bulkMode){
+      bindBulkEvents();
+    }else if(isTeacher){
+      $("#saveSched").onclick = async ()=>{
+        const type = $("#schedType").value;
+        const title = $("#schedTitle").value.trim();
+        const time = readTimeRange("schedTime");
+        const place = $("#schedPlace").value.trim();
+        const content = $("#schedContent").value.trim();
+        schedule[selectedDate] = { time, place, content, type, title, updatedAt: Date.now() };
+        await safeSet("schedule", schedule, true);
+        $("#schedMsg").textContent = "保存しました。生徒の画面にも反映されます。";
+      };
+      const clearBtn = $("#clearSched");
+      if(clearBtn) clearBtn.onclick = async ()=>{
+        delete schedule[selectedDate];
+        await safeSet("schedule", schedule, true);
+        render();
+      };
+      $("#enterBulk").onclick = ()=>{
+        bulkMode = true;
+        bulkSelectedDates = new Set();
+        render();
+      };
+    }else{
+      $("#addAbsent").onclick = async ()=>{
+        if(previewAsStudent){ $("#absentMsg").textContent = "デモモードのため、実際には送信されません。"; return; }
+        const type = $("#absentType").value;
+        const reason = $("#absentReason").value.trim();
+        await loadAll(); // 他の人の連絡を消さないよう最新状態を取得してから追加する
+        if(!absences[selectedDate]) absences[selectedDate] = [];
+        absences[selectedDate].push({name:session.name, type, reason, ts: Date.now(), date: selectedDate});
+        await safeSet("absences", absences, true);
+        $("#absentMsg").textContent = "連絡しました。「お知らせ」タブにも表示されます。";
+        render();
+      };
+    }
+  } else if(activeTab==="reflection"){
+    $$(".refl-name-btn[data-reflkey]").forEach(btn=>{
+      btn.onclick = ()=>{
+        const k = btn.dataset.reflkey;
+        if(expandedReflections.has(k)) expandedReflections.delete(k); else expandedReflections.add(k);
+        render();
+      };
+    });
+    if(!isTeacher){
+      const addReflBtn = $("#addRefl");
+      if(addReflBtn){
+        addReflBtn.onclick = async ()=>{
+          if(previewAsStudent){ $("#reflMsg").textContent = "デモモードのため、実際には送信されません。"; return; }
+          const todayStr = fmtDate(new Date());
+          if(selectedDate > todayStr){ $("#reflMsg").textContent = "この日はまだ来ていないので提出できません。"; return; }
+
+          const playNotes = $("#reflPlayNotes").value.trim();
+          const attitudeNotes = $("#reflAttitudeNotes").value.trim();
+          if(!playNotes && !attitudeNotes){ $("#reflMsg").textContent = "どちらか一つは入力してください。"; return; }
+
+          await loadAll(); // 他の生徒の振り返りを消さないよう最新状態を取得してから追加する
+          if(!reflections[selectedDate]) reflections[selectedDate] = [];
+          reflections[selectedDate].push({ name:session.name, playNotes, attitudeNotes, ts: Date.now() });
+          await safeSet("reflections", reflections, true);
+          render();
+        };
+      }
+      const addMatchReflBtn = $("#addMatchRefl");
+      if(addMatchReflBtn){
+        addMatchReflBtn.onclick = async ()=>{
+          if(previewAsStudent){ $("#matchReflMsg").textContent = "デモモードのため、実際には送信されません。"; return; }
+          const todayStr = fmtDate(new Date());
+          if(selectedDate > todayStr){ $("#matchReflMsg").textContent = "この日はまだ来ていないので提出できません。"; return; }
+
+          const partner = readPersonPicker("reflPartner");
+          const opponent1 = readPersonPicker("reflOppA");
+          const opponent2 = readPersonPicker("reflOppB");
+          const gameCount = $("#reflGameCount").value.trim();
+          const notes = $("#reflMatchNotes").value.trim();
+          if(!partner && !opponent1 && !opponent2 && !gameCount && !notes){
+            $("#matchReflMsg").textContent = "どれか一つは入力してください。";
+            return;
+          }
+
+          await loadAll(); // 他の生徒の振り返りを消さないよう最新状態を取得してから追加する
+          if(!reflections[selectedDate]) reflections[selectedDate] = [];
+          reflections[selectedDate].push({ name:session.name, kind:"match", partner, opponent1, opponent2, gameCount, notes, ts: Date.now() });
+          await safeSet("reflections", reflections, true);
+          render();
+        };
+      }
+    }
+  }
+}
+
+/* ---------------- SURVEY (ペアの希望アンケートなど) ---------------- */
+function renderSurveyCard(isTeacher){
+  const totalStudents = roster.students.length;
+  const responded = Object.keys(surveyResponses).length;
+  const hasSurvey = !!(survey && survey.question);
+  let inner = "";
+
+  if(isTeacher){
+    if(!hasSurvey || surveyCreating){
+      if(surveyCreating && hasSurvey){
+        inner += `<div class="hint" style="color:var(--alert);font-weight:700;margin-bottom:8px;">新しく作成すると、今のアンケートと回答（${responded}件）は上書きされ、元に戻せません。</div>`;
+      }
+      inner += renderSurveyCreateForm();
+      if(hasSurvey){
+        inner += `<button class="btn ghost" id="cancelSurveyCreate" style="margin-top:8px;">キャンセル</button>`;
+      }
+    }else{
+      inner += `
+        <div style="font-weight:700;margin-bottom:4px;">${escapeHtml(survey.question)}</div>
+        <div class="hint" style="margin-bottom:12px;">第${survey.numChoices}希望まで／${survey.active? '<span style="color:var(--court-green);font-weight:700;">回答受付中</span>':'<span style="color:var(--ink-soft);">受付終了</span>'}／回答済み ${responded} / ${totalStudents}名</div>
+        ${!surveyDeleteConfirming ? `
+          <button class="btn ghost" id="toggleSurveyActive">${survey.active? '回答を締め切る':'回答を再開する'}</button>
+          <button class="btn ghost" id="showSurveyCreateForm" style="margin-left:8px;">新しいアンケートを作成</button>
+          <button class="btn alert" id="showSurveyDeleteConfirm" style="margin-left:8px;">アンケートを完全に削除する</button>
+        ` : `
+          <div class="hint" style="color:var(--alert);font-weight:700;margin-bottom:8px;">本当に削除しますか？質問文と回答（${responded}件）がすべて消え、元に戻せません。</div>
+          <button class="btn alert" id="confirmSurveyDelete">削除する</button>
+          <button class="btn ghost" id="cancelSurveyDelete" style="margin-left:8px;">キャンセル</button>
+        `}
+        <div style="margin-top:14px;">
+          ${responded===0 ? `<div class="hint" style="margin:0;">まだ回答がありません（この結果は先生にしか見えていません）。</div>` :
+            Object.keys(surveyResponses).map(name=>{
+              const r = surveyResponses[name] || {};
+              const rankings = r.rankings || [];
+              return `<div class="list-item"><span class="name">${escapeHtml(name)}</span><span style="font-size:12.5px;">${rankings.map((n,i)=>`${i+1}位: ${escapeHtml(n)}`).join('　')}</span></div>`;
+            }).join("")}
+        </div>
+      `;
+    }
+  }else{
+    if(!hasSurvey){
+      inner = `<div class="hint" style="margin:0;">現在、回答を受け付けているアンケートはありません。</div>`;
+    }else if(!survey.active){
+      inner = `<div style="font-weight:700;margin-bottom:6px;">${escapeHtml(survey.question)}</div><div class="hint" style="margin:0;">回答受付は終了しました。</div>`;
+    }else{
+      const mine = surveyResponses[session.name];
+      inner = `<div style="font-weight:700;margin-bottom:10px;">${escapeHtml(survey.question)}</div>${renderSurveyAnswerForm(mine)}`;
+    }
+  }
+  return `<div class="card"><h3>アンケート（ペアの希望など）${!isTeacher? '<span style="font-size:11px;color:var(--ink-soft);">（先生にだけ見えます）</span>':''}</h3>${inner}</div>`;
+}
+
+function renderSurveyCreateForm(){
+  const q = survey && survey.question ? survey.question : "";
+  const n = survey && survey.numChoices ? survey.numChoices : 3;
+  return `
+    <div class="field-row"><textarea id="surveyQuestionInput" placeholder="質問文（例: ペアの希望を第3希望まで教えてください）">${escapeHtml(q)}</textarea></div>
+    <div class="field-row">
+      <select id="surveyNumChoicesInput">
+        ${[1,2,3,4,5].map(v=>`<option value="${v}" ${v===n?'selected':''}>第${v}希望まで</option>`).join("")}
+      </select>
+    </div>
+    <button class="btn" id="startSurveyBtn">アンケートを開始する</button>
+  `;
+}
+
+function renderSurveyAnswerForm(mine){
+  const n = survey.numChoices || 3;
+  const existing = (mine && Array.isArray(mine.rankings)) ? mine.rankings : [];
+  let blocks = "";
+  for(let i=1;i<=n;i++){
+    const cur = existing[i-1] || "";
+    blocks += `<div class="hint" style="margin:8px 0 4px;">第${i}希望</div>${renderPersonPicker('surveyRank'+i, cur, session.name)}`;
+  }
+  return `
+    ${blocks}
+    <button class="btn" id="submitSurveyBtn" style="margin-top:10px;">${mine? '回答を更新する':'回答を送信する'}</button>
+    <div class="status-msg" id="surveyMsg"></div>
+    ${mine ? `<div class="hint" style="margin-top:8px;">前回の回答：${existing.map((r,i)=>`${i+1}位 ${escapeHtml(r)}`).join('　')}</div>`:''}
+  `;
+}
+
+function bindNoticeEvents(){
+  const isTeacher = isTeacherNow();
+
+  if(!previewAsStudent){
+    const now = Date.now();
+    if(now - lastSeenWriteAt > 4000){
+      lastSeen[session.name] = now;
+      lastSeenWriteAt = now;
+      safeSet("lastSeen", lastSeen, true);
+    }
+  }
+
+  $$(".chat-tab[data-student]").forEach(btn=>{
+    btn.onclick = ()=>{ selectedThreadStudent = btn.dataset.student; render(); };
+  });
+
+  if(isTeacher){
+    const startSurveyBtn = $("#startSurveyBtn");
+    if(startSurveyBtn){
+      startSurveyBtn.onclick = async ()=>{
+        const question = $("#surveyQuestionInput").value.trim();
+        const numChoices = parseInt($("#surveyNumChoicesInput").value, 10);
+        if(!question){ return; }
+        survey = { active:true, question, numChoices, createdAt: Date.now() };
+        surveyResponses = {};
+        await saveSurveyData();
+        surveyCreating = false;
+        render();
+      };
+    }
+    const cancelSurveyCreate = $("#cancelSurveyCreate");
+    if(cancelSurveyCreate){
+      cancelSurveyCreate.onclick = ()=>{ surveyCreating = false; render(); };
+    }
+    const showSurveyCreateForm = $("#showSurveyCreateForm");
+    if(showSurveyCreateForm){
+      showSurveyCreateForm.onclick = ()=>{ surveyCreating = true; render(); };
+    }
+    const toggleSurveyActive = $("#toggleSurveyActive");
+    if(toggleSurveyActive){
+      toggleSurveyActive.onclick = async ()=>{
+        survey.active = !survey.active;
+        await saveSurveyData();
+        render();
+      };
+    }
+    const showSurveyDeleteConfirm = $("#showSurveyDeleteConfirm");
+    if(showSurveyDeleteConfirm){
+      showSurveyDeleteConfirm.onclick = ()=>{ surveyDeleteConfirming = true; render(); };
+    }
+    const cancelSurveyDelete = $("#cancelSurveyDelete");
+    if(cancelSurveyDelete){
+      cancelSurveyDelete.onclick = ()=>{ surveyDeleteConfirming = false; render(); };
+    }
+    const confirmSurveyDelete = $("#confirmSurveyDelete");
+    if(confirmSurveyDelete){
+      confirmSurveyDelete.onclick = async ()=>{
+        survey = { active:false, question:"", numChoices:3, createdAt:0 };
+        surveyResponses = {};
+        await saveSurveyData();
+        surveyDeleteConfirming = false;
+        render();
+      };
+    }
+  }else{
+    const submitSurveyBtn = $("#submitSurveyBtn");
+    if(submitSurveyBtn){
+      submitSurveyBtn.onclick = async ()=>{
+        if(previewAsStudent){ $("#surveyMsg").textContent = "デモモードのため、実際には送信されません。"; return; }
+        const n = survey.numChoices || 3;
+        const rankings = [];
+        for(let i=1;i<=n;i++){
+          const v = readPersonPicker("surveyRank"+i);
+          if(v) rankings.push(v);
+        }
+        if(rankings.length===0){ $("#surveyMsg").textContent = "少なくとも1人は選んでください。"; return; }
+        const uniqueCheck = new Set(rankings);
+        if(uniqueCheck.size !== rankings.length){ $("#surveyMsg").textContent = "同じ人を重複して選ばないでください。"; return; }
+        await loadAll(); // 他の生徒の回答を消さないよう最新状態を取得してから追加する
+        surveyResponses[session.name] = { rankings, submittedAt: Date.now() };
+        await saveSurveyData();
+        render();
+      };
+    }
+  }
+
+  if(isTeacher){
+    const sendBc = $("#sendBroadcast");
+    if(sendBc){
+      sendBc.onclick = async ()=>{
+        const text = $("#broadcastText").value.trim();
+        if(!text){ $("#broadcastMsg").textContent = "内容を入力してください。"; return; }
+        await loadAll();
+        broadcasts.push({text, ts: Date.now()});
+        await safeSet("broadcasts", broadcasts, true);
+        render();
+      };
+    }
+  }
+
+  const sendThread = $("#sendThreadMsg");
+  if(sendThread){
+    sendThread.onclick = async ()=>{
+      if(previewAsStudent){ $("#threadMsg").textContent = "デモモードのため、実際には送信されません。"; return; }
+      const text = $("#threadInput").value.trim();
+      if(!text) return;
+      const threadName = isTeacher ? selectedThreadStudent : session.name;
+      if(isTeacher && !threadName){ $("#threadMsg").textContent = "生徒を選んでください。"; return; }
+      await loadAll(); // 他のメッセージを消さないよう最新状態を取得してから追加する
+      if(!privateThreads[threadName]) privateThreads[threadName] = [];
+      privateThreads[threadName].push({ from: isTeacher? "teacher":"student", text, ts: Date.now() });
+      await safeSet("privateThreads", privateThreads, true);
+      render();
+    };
+  }
+}
+
+async function removeBroadcast(idx){
+  broadcasts.splice(idx,1);
+  await safeSet("broadcasts", broadcasts, true);
+  render();
+}
+
+function bindBulkEvents(){
+  const applyBtn = $("#applyBulk");
+  if(applyBtn){
+    applyBtn.onclick = async ()=>{
+      if(bulkSelectedDates.size===0) return;
+      const type = $("#bulkType").value;
+      const time = readTimeRange("bulkTime");
+      const place = $("#bulkPlace").value.trim();
+      const content = $("#bulkContent").value.trim();
+      const now = Date.now();
+      bulkSelectedDates.forEach(d=>{
+        schedule[d] = { time, place, content, type, updatedAt: now };
+      });
+      await safeSet("schedule", schedule, true);
+      const count = bulkSelectedDates.size;
+      bulkMode = false;
+      bulkSelectedDates = new Set();
+      render();
+    };
+  }
+  const clearBtn = $("#clearBulkSel");
+  if(clearBtn) clearBtn.onclick = ()=>{ bulkSelectedDates = new Set(); render(); };
+  const exitBtn = $("#exitBulk");
+  if(exitBtn) exitBtn.onclick = ()=>{ bulkMode=false; bulkSelectedDates=new Set(); render(); };
+}
+
+function bindSettingsEvents(){
+  $("#addStuBtn").onclick = async ()=>{
+    const name = $("#newStuName").value.trim();
+    if(!name){ $("#stuMsg").textContent = "名前を入力してください。"; return; }
+    await loadAll(); // 他の変更を上書きしないよう最新状態を取得してから追加する
+    if(roster.students.find(s=>s.name===name)){ $("#stuMsg").textContent = "同じ名前がすでに登録されています。"; return; }
+    roster.students.push({name, passcode:null});
+    await safeSet("roster", roster, true);
+    render();
+  };
+  $("#changeTeacherPassBtn").onclick = async ()=>{
+    const p = $("#newTeacherPass").value;
+    if(p.length<4){ $("#teacherPassMsg").textContent = "4文字以上にしてください。"; return; }
+    await loadAll();
+    roster.teacherPasscode = p;
+    await safeSet("roster", roster, true);
+    $("#teacherPassMsg").textContent = "変更しました。";
+  };
+}
+
+async function removeAbsence(i){
+  absences[selectedDate].splice(i,1);
+  await safeSet("absences", absences, true);
+  render();
+}
+async function removeReflection(i){
+  reflections[selectedDate].splice(i,1);
+  await safeSet("reflections", reflections, true);
+  render();
+}
+async function removeStudent(i){
+  roster.students.splice(i,1);
+  await safeSet("roster", roster, true);
+  render();
+}
+function togglePassView(i){
+  const span = document.getElementById(`pass-${i}`);
+  const btn = document.getElementById(`passBtn-${i}`);
+  if(!span) return;
+  const isHidden = span.textContent === "••••";
+  if(isHidden){
+    span.textContent = roster.students[i].passcode;
+    if(btn) btn.textContent = "隠す";
+  }else{
+    span.textContent = "••••";
+    if(btn) btn.textContent = "表示";
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
