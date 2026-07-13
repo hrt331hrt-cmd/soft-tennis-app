@@ -242,6 +242,36 @@
     border-radius:999px;
     margin-left:4px;
   }
+  .chat-dot{
+    display:inline-block;
+    width:9px; height:9px;
+    background:var(--refl);
+    border-radius:50%;
+    margin-left:5px;
+    vertical-align:middle;
+  }
+  .chat-scroll{
+    max-height:400px;
+    overflow-y:auto;
+    padding:6px 2px;
+    display:flex;
+    flex-direction:column;
+  }
+  .chat-bubble-row{ display:flex; margin-bottom:10px; }
+  .chat-bubble-row.mine{ justify-content:flex-end; }
+  .chat-bubble{
+    display:inline-block;
+    max-width:78%;
+    padding:9px 14px;
+    border-radius:16px;
+    font-size:13.5px;
+    line-height:1.45;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .chat-bubble.theirs{ background:#fff; border:1px solid var(--border); border-bottom-left-radius:4px; }
+  .chat-bubble.mine{ background:var(--court-green); color:var(--line-white); border-bottom-right-radius:4px; }
+  .chat-bubble-time{ font-size:10px; color:var(--ink-soft); margin-top:3px; }
   .tab-badge{
     display:inline-block;
     background:var(--refl);
@@ -322,8 +352,11 @@ let reflections = {}; // { date: [{name, menu, notes, ts}] }
 let roster = { teacherPasscode: null, students: [] }; // shared
 let broadcasts = [];      // shared: [{text, ts}]  先生→全体
 let privateThreads = {};  // shared: { studentName: [{from:'student'|'teacher', text, ts}] }
-let lastSeen = {};        // shared: { name: timestamp } お知らせタブを最後に見た時刻
+let lastSeen = {};        // shared: { name: timestamp } お知らせ/連絡タブを最後に見た時刻
 let lastSeenWriteAt = 0;  // 直近でlastSeenを保存した時刻（連続保存を防ぐため）
+let threadLastSeen = {};  // shared: { studentName: timestamp } 先生がその生徒のトークを最後に見た時刻
+let threadLastSeenWriteAt = 0;
+let broadcastPage = 0; // お知らせ一覧の現在のページ（0始まり）
 let survey = { active:false, question:"", numChoices:3, createdAt:0 }; // shared: アンケート設定
 let surveyResponses = {}; // shared: { studentName: { rankings:[name,...], submittedAt } }
 let surveyCreating = false; // 先生がアンケート新規作成フォームを表示中か（ローカル状態）
@@ -343,6 +376,7 @@ let bulkSelectedDates = new Set(); // 一括設定モードで選択中の日付
 let expandedReflections = new Set(); // 開いている反省（アコーディオン）のキー
 let loginRoleChoice = "student";
 let loginSelectedStudent = "";
+let studentFirstTimeMode = false; // 生徒ログイン：初めての人向け（名前選択）モードかどうか
 let loginErr = "";
 
 function fmtDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -378,7 +412,7 @@ async function safeSet(key, value, shared){
 }
 
 async function loadAll(){
-  const [s, a, r, ro, bc, pt, ls, sd] = await Promise.all([
+  const [s, a, r, ro, bc, pt, ls, sd, tls] = await Promise.all([
     safeGetKeep("schedule", true, schedule),
     safeGetKeep("absences", true, absences),
     safeGetKeep("reflections", true, reflections),
@@ -387,6 +421,7 @@ async function loadAll(){
     safeGetKeep("privateThreads", true, privateThreads),
     safeGetKeep("lastSeen", true, lastSeen),
     safeGetKeep("surveyData", true, { survey, surveyResponses }),
+    safeGetKeep("threadLastSeen", true, threadLastSeen),
   ]);
   schedule = s || {};
   absences = a || {};
@@ -397,9 +432,16 @@ async function loadAll(){
   lastSeen = ls || {};
   survey = (sd && sd.survey) || { active:false, question:"", numChoices:3, createdAt:0 };
   surveyResponses = (sd && sd.surveyResponses) || {};
+  threadLastSeen = tls || {};
 }
 async function saveSurveyData(){
   await safeSet("surveyData", { survey, surveyResponses }, true);
+}
+async function saveThreadLastSeen(){
+  const now = Date.now();
+  if(now - threadLastSeenWriteAt < 2000) return; // 連続保存を防ぐ
+  threadLastSeenWriteAt = now;
+  await safeSet("threadLastSeen", threadLastSeen, true);
 }
 
 const now = new Date();
@@ -449,6 +491,13 @@ function renderStudentLoginForm(){
   if(roster.students.length===0){
     return `<div class="hint">まだ生徒が登録されていません。先生に登録を依頼してください。</div>`;
   }
+  if(!studentFirstTimeMode){
+    return `
+      <input id="loginPass" type="password" placeholder="パスコード">
+      <button class="btn" id="loginSubmit">ログイン</button>
+      <button class="btn ghost" id="showFirstTimeSetup" style="width:100%;margin-top:10px;">初めてログインする（名前を選ぶ）</button>
+    `;
+  }
   const selectHtml = `
     <select id="loginName">
       <option value="">名前を選ぶ</option>
@@ -456,19 +505,23 @@ function renderStudentLoginForm(){
     </select>
   `;
   const selected = roster.students.find(s=>s.name===loginSelectedStudent);
-  if(!selected){ return selectHtml; }
-  if(!selected.passcode){
-    return selectHtml + `
+  let formHtml;
+  if(!selected){
+    formHtml = selectHtml;
+  }else if(!selected.passcode){
+    formHtml = selectHtml + `
       <div class="hint">初めてのログインです。自分だけのパスコードを決めてください（先生は忘れたときのために確認できます）。</div>
       <input id="setupPass1" type="password" placeholder="新しいパスコード（4文字以上）">
       <input id="setupPass2" type="password" placeholder="もう一度入力">
       <button class="btn" id="studentSetupSubmit">パスコードを設定してログイン</button>
     `;
+  }else{
+    formHtml = selectHtml + `
+      <input id="loginPass" type="password" placeholder="パスコード">
+      <button class="btn" id="loginSubmit">ログイン</button>
+    `;
   }
-  return selectHtml + `
-    <input id="loginPass" type="password" placeholder="パスコード">
-    <button class="btn" id="loginSubmit">ログイン</button>
-  `;
+  return formHtml + `<button class="btn ghost" id="backToPassOnly" style="width:100%;margin-top:10px;">戻る</button>`;
 }
 function renderTeacherLoginForm(needsSetup){
   if(needsSetup){
@@ -486,8 +539,16 @@ function renderTeacherLoginForm(needsSetup){
 }
 function bindLoginEvents(){
   $$(".login-role-switch button").forEach(b=>{
-    b.onclick = ()=>{ loginRoleChoice = b.dataset.role; loginSelectedStudent=""; loginErr=""; render(); };
+    b.onclick = ()=>{ loginRoleChoice = b.dataset.role; loginSelectedStudent=""; studentFirstTimeMode=false; loginErr=""; render(); };
   });
+  const showFirstTimeSetup = $("#showFirstTimeSetup");
+  if(showFirstTimeSetup){
+    showFirstTimeSetup.onclick = ()=>{ studentFirstTimeMode = true; loginErr=""; render(); };
+  }
+  const backToPassOnly = $("#backToPassOnly");
+  if(backToPassOnly){
+    backToPassOnly.onclick = ()=>{ studentFirstTimeMode = false; loginSelectedStudent=""; loginErr=""; render(); };
+  }
   const nameSel = $("#loginName");
   if(nameSel){
     nameSel.onchange = ()=>{ loginSelectedStudent = nameSel.value; loginErr=""; render(); };
@@ -519,10 +580,13 @@ function bindLoginEvents(){
       const idx = roster.students.findIndex(s=>s.name===loginSelectedStudent);
       if(idx===-1){ loginErr="生徒情報が見つかりませんでした。もう一度お試しください。"; render(); return; }
       if(roster.students[idx].passcode){ loginErr="すでにパスコードが設定されています。ログインし直してください。"; render(); return; }
+      const duplicate = roster.students.some((s,i)=> i!==idx && s.passcode === p1);
+      if(duplicate){ loginErr="そのパスコードは他の人が使っています。別の番号にしてください。"; render(); return; }
       roster.students[idx].passcode = p1;
       await safeSet("roster", roster, true);
       session = { role:"student", name: loginSelectedStudent };
       loginErr="";
+      studentFirstTimeMode = false;
       render();
     };
   }
@@ -538,7 +602,7 @@ function bindLoginEvents(){
         }else{
           loginErr = "パスコードが違います。";
         }
-      }else{
+      }else if(studentFirstTimeMode){
         const name = loginSelectedStudent;
         const pass = $("#loginPass").value;
         const student = roster.students.find(s=>s.name===name);
@@ -549,13 +613,22 @@ function bindLoginEvents(){
         }else{
           loginErr = "パスコードが違います。";
         }
+      }else{
+        const pass = $("#loginPass").value;
+        const match = roster.students.find(s=> s.passcode && s.passcode === pass);
+        if(match){
+          session = { role:"student", name: match.name };
+          loginErr="";
+        }else{
+          loginErr = "パスコードが違います。";
+        }
       }
       render();
     };
   }
 }
 
-function countUnread(){
+function countNoticeUnread(){
   if(!session || previewAsStudent) return 0;
   const since = lastSeen[session.name] || 0;
   let count = broadcasts.filter(b=>b.ts > since).length;
@@ -564,21 +637,29 @@ function countUnread(){
       if(a.ts > since && a.name !== session.name) count++;
     });
   });
-  if(session.role==="teacher"){
-    Object.keys(privateThreads).forEach(name=>{
-      (privateThreads[name]||[]).forEach(m=>{
-        if(m.ts > since && m.from==="student") count++;
-      });
-    });
-  }else{
-    (privateThreads[session.name]||[]).forEach(m=>{
-      if(m.ts > since && m.from==="teacher") count++;
-    });
-  }
   return count;
 }
-function renderUnreadBadge(){
-  const n = countUnread();
+function hasUnreadFromStudent(name){
+  const since = threadLastSeen[name] || 0;
+  return (privateThreads[name]||[]).some(m=> m.ts > since && m.from==="student");
+}
+function countMessagesUnread(){
+  if(!session || previewAsStudent) return 0;
+  if(session.role==="teacher"){
+    let count = 0;
+    roster.students.forEach(s=>{ if(hasUnreadFromStudent(s.name)) count++; });
+    return count;
+  }else{
+    const since = lastSeen[session.name] || 0;
+    return (privateThreads[session.name]||[]).filter(m=> m.ts > since && m.from==="teacher").length;
+  }
+}
+function renderNoticeBadge(){
+  const n = countNoticeUnread();
+  return n>0 ? ` <span class="tab-badge">${n}</span>` : '';
+}
+function renderMessagesBadge(){
+  const n = countMessagesUnread();
   return n>0 ? ` <span class="tab-badge">${n}</span>` : '';
 }
 
@@ -615,11 +696,12 @@ function renderApp(){
     <div class="tabs">
       <button data-tab="schedule" class="${activeTab==='schedule'?'active':''}">① スケジュール・欠席連絡</button>
       <button data-tab="reflection" class="${activeTab==='reflection'?'active':''}">② 振り返り</button>
-      <button data-tab="notice" class="${activeTab==='notice'?'active':''}">③ お知らせ・連絡${renderUnreadBadge()}</button>
+      <button data-tab="notice" class="${activeTab==='notice'?'active':''}">③ お知らせ${renderNoticeBadge()}</button>
+      <button data-tab="messages" class="${activeTab==='messages'?'active':''}">④ ${isTeacher? '生徒との連絡':'先生との連絡'}${renderMessagesBadge()}</button>
       ${isTeacher? `<button data-tab="settings" class="${activeTab==='settings'?'active':''}">設定（生徒管理）</button>`:''}
     </div>
 
-    ${activeTab==='settings' ? renderSettingsPanel() : (activeTab==='notice' ? renderNoticePanel() : renderMainPanel())}
+    ${activeTab==='settings' ? renderSettingsPanel() : (activeTab==='notice' ? renderNoticePanel() : (activeTab==='messages' ? renderMessagesPanel() : renderMainPanel()))}
   </div>`;
 }
 
@@ -983,6 +1065,11 @@ function renderNoticePanel(){
   const isTeacher = isTeacherNow();
   return `
   <div class="panel single">
+    <div class="card">
+      <h3>欠席・遅刻・早退の連絡（自動でここに集まります）</h3>
+      ${renderAbsenceFeedHtml()}
+    </div>
+
     ${renderSurveyCard(isTeacher)}
 
     <div class="card">
@@ -994,14 +1081,15 @@ function renderNoticePanel(){
       `:''}
       <div style="margin-top:14px;">${renderBroadcastListHtml(isTeacher)}</div>
     </div>
+  </div>`;
+}
 
+function renderMessagesPanel(){
+  const isTeacher = isTeacherNow();
+  return `
+  <div class="panel single">
     <div class="card">
-      <h3>欠席・遅刻・早退の連絡（自動でここに集まります）</h3>
-      ${renderAbsenceFeedHtml()}
-    </div>
-
-    <div class="card">
-      <h3>${isTeacher? "生徒からの個人連絡" : "先生への個人連絡"}</h3>
+      <h3>${isTeacher? "生徒との連絡" : "先生との連絡"}</h3>
       ${isTeacher ? renderTeacherThreadPicker() : ""}
       <div id="threadArea">${renderThreadHtml(isTeacher)}</div>
     </div>
@@ -1018,7 +1106,11 @@ function renderBroadcastListHtml(isTeacher){
     return `<div class="hint" style="margin:0;">直近1ヶ月のお知らせはありません（それより前のものは自動的に非表示になっています。削除はされていません）。</div>`;
   }
   const sorted = [...visible].sort((a,b)=>b.ts-a.ts);
-  const listHtml = sorted.map(b=>{
+  const PAGE_SIZE = 5;
+  const maxPage = Math.max(0, Math.ceil(sorted.length / PAGE_SIZE) - 1);
+  if(broadcastPage > maxPage) broadcastPage = maxPage;
+  const pageItems = sorted.slice(broadcastPage*PAGE_SIZE, broadcastPage*PAGE_SIZE + PAGE_SIZE);
+  const listHtml = pageItems.map(b=>{
     const idx = broadcasts.indexOf(b);
     return `
     <div class="list-item" style="flex-direction:column;align-items:stretch;">
@@ -1029,8 +1121,15 @@ function renderBroadcastListHtml(isTeacher){
       <div class="refl-body">${escapeHtml(b.text)}</div>
     </div>`;
   }).join("");
+  const pagerHtml = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+      <button class="btn ghost" id="broadcastPrevPage" style="padding:5px 14px;font-size:12px;" ${broadcastPage<=0?'disabled':''}>前へ</button>
+      <span class="hint" style="margin:0;">${broadcastPage+1} / ${maxPage+1} ページ</span>
+      <button class="btn ghost" id="broadcastNextPage" style="padding:5px 14px;font-size:12px;" ${broadcastPage>=maxPage?'disabled':''}>次へ</button>
+    </div>
+  `;
   const footNote = hiddenCount>0 ? `<div class="hint" style="margin-top:8px;">1ヶ月より前のお知らせが${hiddenCount}件あります（自動的に非表示。削除はされていません）。</div>` : '';
-  return listHtml + footNote;
+  return listHtml + (sorted.length>PAGE_SIZE ? pagerHtml : '') + footNote;
 }
 
 function renderAbsenceFeedHtml(){
@@ -1056,15 +1155,19 @@ function renderTeacherThreadPicker(){
   return `
     <div class="chat-tab-row">
       ${roster.students.map(s=>{
-        const count = (privateThreads[s.name]||[]).length;
+        const unread = hasUnreadFromStudent(s.name);
         const active = s.name===selectedThreadStudent;
-        return `<button class="chat-tab ${active?'active':''}" data-student="${escapeHtml(s.name)}">${escapeHtml(s.name)}${count? ` <span class="chat-count">${count}</span>`:''}</button>`;
+        return `<button class="chat-tab ${active?'active':''}" data-student="${escapeHtml(s.name)}">${escapeHtml(s.name)}${unread? ` <span class="chat-dot"></span>`:''}</button>`;
       }).join("")}
     </div>
   `;
 }
 function selectThreadStudent(name){
   selectedThreadStudent = name;
+  if(session && session.role==="teacher" && !previewAsStudent){
+    threadLastSeen[name] = Date.now();
+    saveThreadLastSeen();
+  }
   render();
 }
 
@@ -1075,19 +1178,20 @@ function renderThreadHtml(isTeacher){
   }
   const msgs = privateThreads[threadName] || [];
   const listHtml = msgs.length===0
-    ? `<div class="hint" style="margin:0;">まだメッセージはありません。</div>`
-    : msgs.map(m=>`
-        <div class="list-item" style="flex-direction:column;align-items:stretch;">
-          <div style="display:flex;justify-content:space-between;">
-            <span class="name">${m.from==='teacher'? '先生':escapeHtml(threadName)}</span>
-            <span class="meta">${new Date(m.ts).toLocaleString()}</span>
+    ? `<div class="hint" style="margin:0 0 10px;">まだメッセージはありません。最初のメッセージを送ってみましょう。</div>`
+    : msgs.map(m=>{
+        const mine = isTeacher ? m.from==='teacher' : m.from==='student';
+        return `
+        <div class="chat-bubble-row ${mine?'mine':''}">
+          <div>
+            <div class="chat-bubble ${mine?'mine':'theirs'}">${escapeHtml(m.text)}</div>
+            <div class="chat-bubble-time" style="text-align:${mine?'right':'left'};">${new Date(m.ts).toLocaleString()}</div>
           </div>
-          <div class="refl-body">${escapeHtml(m.text)}</div>
-        </div>
-      `).join("");
+        </div>`;
+      }).join("");
   return `
-    <div style="margin-bottom:10px;">${listHtml}</div>
-    <div class="field-row">
+    <div class="chat-scroll" id="chatScroll">${listHtml}</div>
+    <div class="field-row" style="margin-top:10px;">
       <input id="threadInput" placeholder="${isTeacher? 'この生徒への返信を入力':'先生へのメッセージを入力'}">
       <button class="btn" id="sendThreadMsg">送信</button>
     </div>
@@ -1135,7 +1239,7 @@ function renderSettingsPanel(){
 
 /* ---------------- Event binding ---------------- */
 function bindAppEvents(){
-  $("#logoutBtn").onclick = ()=>{ session=null; previewAsStudent=false; render(); };
+  $("#logoutBtn").onclick = ()=>{ session=null; previewAsStudent=false; studentFirstTimeMode=false; loginSelectedStudent=""; render(); };
   const enterDemoBtn = $("#enterDemoBtn");
   if(enterDemoBtn){
     enterDemoBtn.onclick = ()=>{
@@ -1160,6 +1264,7 @@ function bindAppEvents(){
 
   if(activeTab==="settings"){ bindSettingsEvents(); return; }
   if(activeTab==="notice"){ bindNoticeEvents(); return; }
+  if(activeTab==="messages"){ bindMessagesEvents(); return; }
 
   const prevBtn = $("#prevMonth"), nextBtn = $("#nextMonth");
   if(prevBtn) prevBtn.onclick = ()=>{ viewMonth--; if(viewMonth<0){viewMonth=11;viewYear--;} render(); };
@@ -1277,6 +1382,11 @@ function renderSurveyCard(isTeacher){
   const totalStudents = roster.students.length;
   const responded = Object.keys(surveyResponses).length;
   const hasSurvey = !!(survey && survey.question);
+
+  if(!isTeacher && !(survey && survey.active)){
+    return ""; // 生徒にはアンケート期間中でなければ表示しない
+  }
+
   let inner = "";
 
   if(isTeacher){
@@ -1312,14 +1422,8 @@ function renderSurveyCard(isTeacher){
       `;
     }
   }else{
-    if(!hasSurvey){
-      inner = `<div class="hint" style="margin:0;">現在、回答を受け付けているアンケートはありません。</div>`;
-    }else if(!survey.active){
-      inner = `<div style="font-weight:700;margin-bottom:6px;">${escapeHtml(survey.question)}</div><div class="hint" style="margin:0;">回答受付は終了しました。</div>`;
-    }else{
-      const mine = surveyResponses[session.name];
-      inner = `<div style="font-weight:700;margin-bottom:10px;">${escapeHtml(survey.question)}</div>${renderSurveyAnswerForm(mine)}`;
-    }
+    const mine = surveyResponses[session.name];
+    inner = `<div style="font-weight:700;margin-bottom:10px;">${escapeHtml(survey.question)}</div>${renderSurveyAnswerForm(mine)}`;
   }
   return `<div class="card"><h3>アンケート（ペアの希望など）${!isTeacher? '<span style="font-size:11px;color:var(--ink-soft);">（先生にだけ見えます）</span>':''}</h3>${inner}</div>`;
 }
@@ -1366,9 +1470,10 @@ function bindNoticeEvents(){
     }
   }
 
-  $$(".chat-tab[data-student]").forEach(btn=>{
-    btn.onclick = ()=>{ selectedThreadStudent = btn.dataset.student; render(); };
-  });
+  const prevPageBtn = $("#broadcastPrevPage");
+  if(prevPageBtn){ prevPageBtn.onclick = ()=>{ broadcastPage = Math.max(0, broadcastPage-1); render(); }; }
+  const nextPageBtn = $("#broadcastNextPage");
+  if(nextPageBtn){ nextPageBtn.onclick = ()=>{ broadcastPage = broadcastPage+1; render(); }; }
 
   if(isTeacher){
     const startSurveyBtn = $("#startSurveyBtn");
@@ -1449,10 +1554,28 @@ function bindNoticeEvents(){
         await loadAll();
         broadcasts.push({text, ts: Date.now()});
         await safeSet("broadcasts", broadcasts, true);
+        broadcastPage = 0;
         render();
       };
     }
   }
+}
+
+function bindMessagesEvents(){
+  const isTeacher = isTeacherNow();
+
+  if(!previewAsStudent){
+    const now = Date.now();
+    if(now - lastSeenWriteAt > 4000){
+      lastSeen[session.name] = now;
+      lastSeenWriteAt = now;
+      safeSet("lastSeen", lastSeen, true);
+    }
+  }
+
+  $$(".chat-tab[data-student]").forEach(btn=>{
+    btn.onclick = ()=>{ selectThreadStudent(btn.dataset.student); };
+  });
 
   const sendThread = $("#sendThreadMsg");
   if(sendThread){
