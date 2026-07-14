@@ -6,6 +6,7 @@
 <title>観音寺総合高校 ソフトテニス部 部活ノート</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Shippori+Mincho:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --court-green:#1F4A38;
@@ -456,9 +457,12 @@ let bulkMode = false;
 let bulkSelectedDates = new Set(); // 一括設定モードで選択中の日付
 let expandedReflections = new Set(); // 開いている反省（アコーディオン）のキー
 let loginRoleChoice = "student";
-let loginSelectedStudent = "";
-let studentFirstTimeMode = false; // 生徒ログイン：初めての人向け（名前選択）モードかどうか
 let loginErr = "";
+const GOOGLE_CLIENT_ID = "640974817576-ll5gi915ji6q8erbd8ctgimlv0jbj0fv.apps.googleusercontent.com";
+const SCHOOL_DOMAIN = "kansouh.ed.jp";
+let pendingGoogleEmail = "";  // Google認証済みだが、まだ名前とリンクされていないメールアドレス
+let pendingGoogleName = "";   // そのGoogleアカウントの表示名（参考情報）
+let googleLoginError = "";
 
 function fmtDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function parseDate(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
@@ -603,37 +607,24 @@ function renderStudentLoginForm(){
   if(roster.students.length===0){
     return `<div class="hint">まだ生徒が登録されていません。先生に登録を依頼してください。</div>`;
   }
-  if(!studentFirstTimeMode){
+  if(pendingGoogleEmail){
+    const unlinked = roster.students.filter(s=>!s.googleEmail);
     return `
-      <input id="loginPass" type="password" placeholder="パスコード">
-      <button class="btn" id="loginSubmit">ログイン</button>
-      <button class="btn ghost" id="showFirstTimeSetup" style="width:100%;margin-top:10px;">初めてログインする（名前を選ぶ）</button>
+      <div class="hint">Googleアカウント（${escapeHtml(pendingGoogleEmail)}）を確認できました。初めての場合は、自分の名前を選んでください。</div>
+      ${unlinked.length===0 ? `<div class="hint" style="color:var(--alert);">選べる名前がありません。先生に確認してください。</div>` : `
+        <select id="linkNameSelect">
+          <option value="">名前を選ぶ</option>
+          ${unlinked.map(s=>`<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("")}
+        </select>
+        <button class="btn" id="linkNameSubmit">この名前でログインする</button>
+      `}
+      <button class="btn ghost" id="cancelGoogleLink" style="width:100%;margin-top:10px;">キャンセル</button>
     `;
   }
-  const selectHtml = `
-    <select id="loginName">
-      <option value="">名前を選ぶ</option>
-      ${roster.students.map(s=>`<option value="${escapeHtml(s.name)}" ${s.name===loginSelectedStudent?'selected':''}>${escapeHtml(s.name)}</option>`).join("")}
-    </select>
+  return `
+    <div class="hint" style="margin-bottom:10px;">学校のGoogleアカウント（@${SCHOOL_DOMAIN}）でログインしてください。</div>
+    <div id="googleSignInBtn" style="display:flex;justify-content:center;"></div>
   `;
-  const selected = roster.students.find(s=>s.name===loginSelectedStudent);
-  let formHtml;
-  if(!selected){
-    formHtml = selectHtml;
-  }else if(!selected.passcode){
-    formHtml = selectHtml + `
-      <div class="hint">初めてのログインです。自分だけのパスコードを決めてください（先生は忘れたときのために確認できます）。</div>
-      <input id="setupPass1" type="password" placeholder="新しいパスコード（4文字以上）">
-      <input id="setupPass2" type="password" placeholder="もう一度入力">
-      <button class="btn" id="studentSetupSubmit">パスコードを設定してログイン</button>
-    `;
-  }else{
-    formHtml = selectHtml + `
-      <input id="loginPass" type="password" placeholder="パスコード">
-      <button class="btn" id="loginSubmit">ログイン</button>
-    `;
-  }
-  return formHtml + `<button class="btn ghost" id="backToPassOnly" style="width:100%;margin-top:10px;">戻る</button>`;
 }
 function renderTeacherLoginForm(needsSetup){
   if(needsSetup){
@@ -649,21 +640,75 @@ function renderTeacherLoginForm(needsSetup){
     <button class="btn" id="loginSubmit">ログイン</button>
   `;
 }
+function initGoogleSignIn(){
+  const el = document.getElementById('googleSignInBtn');
+  if(!el) return;
+  if(typeof google === 'undefined' || !google.accounts || !google.accounts.id){
+    // ライブラリの読み込みが間に合っていない場合、少し待って再試行
+    setTimeout(initGoogleSignIn, 300);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+  });
+  el.innerHTML = "";
+  google.accounts.id.renderButton(el, { theme: "outline", size: "large", width: 280, text: "signin_with", locale: "ja" });
+}
+async function handleGoogleCredential(response){
+  googleLoginError = "";
+  try{
+    const res = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + response.credential);
+    if(!res.ok){ googleLoginError = "認証の確認に失敗しました。もう一度お試しください。"; render(); return; }
+    const payload = await res.json();
+    const email = (payload.email || "").toLowerCase();
+    if(!email || !email.endsWith("@"+SCHOOL_DOMAIN)){
+      googleLoginError = `学校のメールアドレス（@${SCHOOL_DOMAIN}）でログインしてください。`;
+      render();
+      return;
+    }
+    await loadAll();
+    const match = roster.students.find(s=>s.googleEmail === email);
+    if(match){
+      session = { role:"student", name: match.name };
+      pendingGoogleEmail = "";
+      triggerLoginSplash();
+      return;
+    }
+    pendingGoogleEmail = email;
+    pendingGoogleName = payload.name || "";
+    render();
+  }catch(err){
+    googleLoginError = "エラーが発生しました。もう一度お試しください。";
+    render();
+  }
+}
 function bindLoginEvents(){
   $$(".login-role-switch button").forEach(b=>{
-    b.onclick = ()=>{ loginRoleChoice = b.dataset.role; loginSelectedStudent=""; studentFirstTimeMode=false; loginErr=""; render(); };
+    b.onclick = ()=>{ loginRoleChoice = b.dataset.role; pendingGoogleEmail=""; googleLoginError=""; loginErr=""; render(); };
   });
-  const showFirstTimeSetup = $("#showFirstTimeSetup");
-  if(showFirstTimeSetup){
-    showFirstTimeSetup.onclick = ()=>{ studentFirstTimeMode = true; loginErr=""; render(); };
+  const linkNameSubmit = $("#linkNameSubmit");
+  if(linkNameSubmit){
+    linkNameSubmit.onclick = async ()=>{
+      const name = $("#linkNameSelect").value;
+      if(!name){ googleLoginError = "名前を選んでください。"; render(); return; }
+      await loadAll();
+      const idx = roster.students.findIndex(s=>s.name===name);
+      if(idx===-1){ googleLoginError = "生徒情報が見つかりませんでした。"; render(); return; }
+      if(roster.students[idx].googleEmail){ googleLoginError = "その名前はすでに別のアカウントとリンクされています。"; render(); return; }
+      roster.students[idx].googleEmail = pendingGoogleEmail;
+      await safeSet("roster", roster, true);
+      session = { role:"student", name };
+      pendingGoogleEmail = "";
+      triggerLoginSplash();
+    };
   }
-  const backToPassOnly = $("#backToPassOnly");
-  if(backToPassOnly){
-    backToPassOnly.onclick = ()=>{ studentFirstTimeMode = false; loginSelectedStudent=""; loginErr=""; render(); };
+  const cancelGoogleLink = $("#cancelGoogleLink");
+  if(cancelGoogleLink){
+    cancelGoogleLink.onclick = ()=>{ pendingGoogleEmail=""; pendingGoogleName=""; googleLoginError=""; render(); };
   }
-  const nameSel = $("#loginName");
-  if(nameSel){
-    nameSel.onchange = ()=>{ loginSelectedStudent = nameSel.value; loginErr=""; render(); };
+  if(loginRoleChoice==="student" && !pendingGoogleEmail){
+    initGoogleSignIn();
   }
   const setupBtn = $("#setupSubmit");
   if(setupBtn){
@@ -681,65 +726,18 @@ function bindLoginEvents(){
       render();
     };
   }
-  const studentSetupBtn = $("#studentSetupSubmit");
-  if(studentSetupBtn){
-    studentSetupBtn.onclick = async ()=>{
-      const p1 = $("#setupPass1").value;
-      const p2 = $("#setupPass2").value;
-      if(!p1 || p1.length<4){ loginErr="パスコードは4文字以上にしてください。"; render(); return; }
-      if(p1!==p2){ loginErr="パスコードが一致しません。"; render(); return; }
-      await loadAll(); // 他の生徒の変更を消さないよう最新状態を取得してから書き込む
-      const idx = roster.students.findIndex(s=>s.name===loginSelectedStudent);
-      if(idx===-1){ loginErr="生徒情報が見つかりませんでした。もう一度お試しください。"; render(); return; }
-      if(roster.students[idx].passcode){ loginErr="すでにパスコードが設定されています。ログインし直してください。"; render(); return; }
-      const duplicate = roster.students.some((s,i)=> i!==idx && s.passcode === p1);
-      if(duplicate){ loginErr="そのパスコードは他の人が使っています。別の番号にしてください。"; render(); return; }
-      roster.students[idx].passcode = p1;
-      await safeSet("roster", roster, true);
-      session = { role:"student", name: loginSelectedStudent };
-      loginErr="";
-      studentFirstTimeMode = false;
-      triggerLoginSplash();
-    };
-  }
   const submitBtn = $("#loginSubmit");
   if(submitBtn){
     submitBtn.onclick = async ()=>{
       await loadAll(); // 最新のロースターで確認
-      if(loginRoleChoice==="teacher"){
-        const pass = $("#loginPass").value;
-        if(pass && pass === roster.teacherPasscode){
-          session = { role:"teacher", name:"先生" };
-          loginErr="";
-        }else{
-          loginErr = "パスコードが違います。";
-        }
-      }else if(studentFirstTimeMode){
-        const name = loginSelectedStudent;
-        const pass = $("#loginPass").value;
-        const student = roster.students.find(s=>s.name===name);
-        if(!name){ loginErr="名前を選んでください。"; render(); return; }
-        if(student && pass === student.passcode){
-          session = { role:"student", name };
-          loginErr="";
-        }else{
-          loginErr = "パスコードが違います。";
-        }
+      const pass = $("#loginPass").value;
+      if(pass && pass === roster.teacherPasscode){
+        session = { role:"teacher", name:"先生" };
+        loginErr="";
       }else{
-        const pass = $("#loginPass").value;
-        const match = roster.students.find(s=> s.passcode && s.passcode === pass);
-        if(match){
-          session = { role:"student", name: match.name };
-          loginErr="";
-        }else{
-          loginErr = "パスコードが違います。";
-        }
+        loginErr = "パスコードが違います。";
       }
-      if(session && session.role==="student"){
-        triggerLoginSplash();
-      }else{
-        render();
-      }
+      render();
     };
   }
 }
@@ -1330,15 +1328,15 @@ function renderSettingsPanel(){
     </div>
     <div class="card settings-list">
       <h3>登録済みの生徒（${roster.students.length}名）</h3>
-      <div class="hint">パスコードを忘れた生徒がいたら「表示」で確認できます。</div>
+      <div class="hint">生徒は自分の学校のGoogleアカウントでログインします。初回ログイン時に自動で名前と紐づきます。</div>
       ${roster.students.length===0 ? `<div class="hint" style="margin:0;">まだ登録されていません。</div>` :
         roster.students.map((s,i)=>`
           <div class="list-item">
             <span class="name">${escapeHtml(s.name)}</span>
             <div>
-              ${s.passcode
-                ? `<span class="meta" id="pass-${i}">••••</span> <button class="btn ghost" style="padding:2px 8px;font-size:11px;" onclick="togglePassView(${i})" id="passBtn-${i}">表示</button>`
-                : `<span class="meta">未設定</span>`}
+              ${s.googleEmail
+                ? `<span class="meta">${escapeHtml(s.googleEmail)}</span>`
+                : `<span class="meta">未連携</span>`}
               <button class="btn ghost" style="padding:3px 10px;font-size:11px;margin-left:6px;" onclick="removeStudent(${i})">削除</button>
             </div>
           </div>
@@ -1362,18 +1360,13 @@ function renderSettingsPanel(){
 
 function renderStudentSettingsPanel(){
   const myGoal = studentGoals[session.name] || "";
+  const myEmail = (roster.students.find(s=>s.name===session.name)||{}).googleEmail || "";
   return `
   <div class="panel single">
     <div class="card">
       <h3>アカウント管理</h3>
-      <div class="hint" style="margin:0 0 10px;">ログイン名：<strong>${escapeHtml(session.name)}</strong></div>
-      <div class="hint" style="margin-bottom:4px;">パスコードを変更する</div>
-      <div class="field-row">
-        <input id="myNewPass1" type="password" placeholder="新しいパスコード（4文字以上）">
-        <input id="myNewPass2" type="password" placeholder="もう一度入力">
-      </div>
-      <button class="btn ghost" id="changeMyPassBtn">パスコードを変更する</button>
-      <div class="status-msg" id="myPassMsg"></div>
+      <div class="hint" style="margin:0 0 6px;">ログイン名：<strong>${escapeHtml(session.name)}</strong></div>
+      <div class="hint" style="margin:0;">連携中のGoogleアカウント：<strong>${myEmail? escapeHtml(myEmail) : "未連携"}</strong></div>
     </div>
     <div class="card">
       <h3>今月の目標</h3>
@@ -1392,7 +1385,7 @@ function renderStudentSettingsPanel(){
 
 /* ---------------- Event binding ---------------- */
 function bindAppEvents(){
-  $("#logoutBtn").onclick = ()=>{ session=null; previewAsStudent=false; studentFirstTimeMode=false; loginSelectedStudent=""; render(); };
+  $("#logoutBtn").onclick = ()=>{ session=null; previewAsStudent=false; pendingGoogleEmail=""; googleLoginError=""; render(); };
   const enterDemoBtn = $("#enterDemoBtn");
   if(enterDemoBtn){
     enterDemoBtn.onclick = ()=>{
@@ -1807,21 +1800,6 @@ function bindSettingsEvents(){
 }
 
 function bindStudentSettingsEvents(){
-  $("#changeMyPassBtn").onclick = async ()=>{
-    const p1 = $("#myNewPass1").value;
-    const p2 = $("#myNewPass2").value;
-    if(!p1 || p1.length<4){ $("#myPassMsg").textContent = "パスコードは4文字以上にしてください。"; return; }
-    if(p1!==p2){ $("#myPassMsg").textContent = "パスコードが一致しません。"; return; }
-    await loadAll(); // 他の生徒の変更を消さないよう最新状態を取得してから書き込む
-    const idx = roster.students.findIndex(s=>s.name===session.name);
-    if(idx===-1){ $("#myPassMsg").textContent = "アカウント情報が見つかりませんでした。"; return; }
-    const duplicate = roster.students.some((s,i)=> i!==idx && s.passcode === p1);
-    if(duplicate){ $("#myPassMsg").textContent = "そのパスコードは他の人が使っています。別の番号にしてください。"; return; }
-    roster.students[idx].passcode = p1;
-    await safeSet("roster", roster, true);
-    $("#myPassMsg").textContent = "パスコードを変更しました。";
-    $("#myNewPass1").value = ""; $("#myNewPass2").value = "";
-  };
   $("#saveGoalBtn").onclick = async ()=>{
     const goal = $("#myGoalInput").value.trim();
     await loadAll(); // 他の生徒の目標を消さないよう最新状態を取得してから書き込む
