@@ -26,13 +26,17 @@
     --radius:14px;
   }
   *{box-sizing:border-box;}
+  html{ overflow-x:hidden; width:100%; }
   body{
     margin:0;
     font-family:'Zen Kaku Gothic New', sans-serif;
     background:var(--court-green);
     color:var(--ink);
     min-height:100vh;
+    overflow-x:hidden;
+    width:100%;
   }
+  select, input, textarea{ max-width:100%; }
   .app{
     max-width:1100px;
     margin:0 auto;
